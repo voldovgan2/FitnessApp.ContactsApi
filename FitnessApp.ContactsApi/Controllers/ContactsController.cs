@@ -1,46 +1,59 @@
-﻿using FitnessApp.ContactsApi.Contracts.Input;
-using FitnessApp.ContactsApi.Contracts.Output;
-using FitnessApp.ContactsApi.Data.Entities;
-using FitnessApp.ContactsApi.Models.Input;
-using FitnessApp.ContactsApi.Models.Output;
-using FitnessApp.ContactsApi.Services.Contacts;
-using FitnessApp.Serializer.JsonMapper;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using AutoMapper;
+using FitnessApp.ContactsApi.Contracts.Input;
+using FitnessApp.ContactsApi.Contracts.Output;
+using FitnessApp.ContactsApi.Models.Input;
+using FitnessApp.ContactsApi.Services.Contacts;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessApp.ContactsApi.Controllers
-{    
+{
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+
+    // [Authorize]
     public class ContactsController : Controller
     {
-        private readonly IContactsService<UserContactsEntity, ContactItemEntity, UserContactsModel, ContactItemModel, CreateUserContactsModel, UpdateUserContactModel> _contactsService;
-        private readonly IJsonMapper _mapper;
+        private readonly IContactsService _contactsService;
+        private readonly IMapper _mapper;
 
-        public ContactsController
-        (
-            IContactsService<UserContactsEntity, ContactItemEntity, UserContactsModel, ContactItemModel, CreateUserContactsModel, UpdateUserContactModel> contactsService,
-            IJsonMapper mapper
+        public ContactsController(
+            IContactsService contactsService,
+            IMapper mapper
         )
         {
             _contactsService = contactsService;
             _mapper = mapper;
         }
 
-        [HttpGet("GetUserContacts")]
-        public async Task<IActionResult> GetUserContactsAsync([FromQuery]GetUserContactsContract contract)
+        [HttpPost("CreateUserContacts")]
+        public async Task<IActionResult> CreateUserContacts([FromBody] CreateUserContactsContract contract)
         {
-            var model = _mapper.Convert<GetUserContactsModel>(contract);
+            var model = _mapper.Map<CreateUserContactsCollectionModel>(contract);
+            var created = await _contactsService.CreateItemContacts(model);
+            if (created != null)
+            {
+                var result = _mapper.Map<UserContactsContract>(created);
+                return Ok(result);
+            }
+            else
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [HttpGet("GetUserContacts")]
+        public async Task<IActionResult> GetUserContacts([FromQuery]GetUserContactsContract contract)
+        {
+            var model = _mapper.Map<GetUserContactsModel>(contract);
             var result = await _contactsService.GetUserContacts(model);
             if (result != null)
             {
-                return Ok(result.Select(i => new ContactContract { UserId = i.Id }));
+                return Ok(result.Select(i => _mapper.Map<UserContactsContract>(i)));
             }
             else
             {
@@ -49,10 +62,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpGet("GetIsFollower")]
-        public async Task<IActionResult> GetIsFollowerAsync([FromQuery]GetFollowerStatusContract contract)
+        public async Task<IActionResult> GetIsFollower([FromQuery]GetFollowerStatusContract contract)
         {
-            var model = _mapper.Convert<GetFollowerStatusModel>(contract);
-            var result = await _contactsService.GetIsFollowerAsync(model);
+            var model = _mapper.Map<GetFollowerStatusModel>(contract);
+            var result = await _contactsService.GetIsFollower(model);
             if (result != null)
             {
                 return Ok(result.Value);
@@ -64,7 +77,7 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpGet("GetUserContactsCount/{userId}")]
-        public async Task<IActionResult> GetUserContactsCountAsync([FromRoute]string userId)
+        public async Task<IActionResult> GetUserContactsCount([FromRoute]string userId)
         {
             var getUserFollowersModel = new GetUserContactsModel
             {
@@ -81,7 +94,7 @@ namespace FitnessApp.ContactsApi.Controllers
             await Task.WhenAll(userFollowers, userFollowings);
             if (userFollowers.Result != null && userFollowings.Result != null)
             {
-                return Ok(new UserContactsCountContract 
+                return Ok(new UserContactsCountContract
                 {
                     UserId = userId,
                     FollowersCount = userFollowers.Result.Count(),
@@ -95,10 +108,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("StartFollow")]
-        public async Task<IActionResult> StartFollowAsync([FromBody] SendFollowContract contract)
+        public async Task<IActionResult> StartFollow([FromBody] SendFollowContract contract)
         {
-            var model = _mapper.Convert<SendFollowModel>(contract);
-            var updated = await _contactsService.StartFollowAsync(model);
+            var model = _mapper.Map<SendFollowModel>(contract);
+            var updated = await _contactsService.StartFollow(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -110,10 +123,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("AcceptFollowRequest")]
-        public async Task<IActionResult> AcceptFollowRequestAsync([FromBody] ProcessFollowRequestContract contract)
+        public async Task<IActionResult> AcceptFollowRequest([FromBody] ProcessFollowRequestContract contract)
         {
-            var model = _mapper.Convert<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.AcceptFollowRequestAsync(model);
+            var model = _mapper.Map<ProcessFollowRequestModel>(contract);
+            var updated = await _contactsService.AcceptFollowRequest(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -125,10 +138,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("RejectFollowRequest")]
-        public async Task<IActionResult> RejectFollowRequestAsync([FromBody] ProcessFollowRequestContract contract)
+        public async Task<IActionResult> RejectFollowRequest([FromBody] ProcessFollowRequestContract contract)
         {
-            var model = _mapper.Convert<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.RejectFollowRequestAsync(model);
+            var model = _mapper.Map<ProcessFollowRequestModel>(contract);
+            var updated = await _contactsService.RejectFollowRequest(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -140,10 +153,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("DeleteFollowRequest")]
-        public async Task<IActionResult> DeleteFollowRequestAsync([FromBody] SendFollowContract contract)
+        public async Task<IActionResult> DeleteFollowRequest([FromBody] SendFollowContract contract)
         {
-            var model = _mapper.Convert<SendFollowModel>(contract);
-            var updated = await _contactsService.DeleteFollowRequestAsync(model);
+            var model = _mapper.Map<SendFollowModel>(contract);
+            var updated = await _contactsService.DeleteFollowRequest(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -155,10 +168,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("DeleteFollower")]
-        public async Task<IActionResult> DeleteFollowerAsync([FromBody] ProcessFollowRequestContract contract)
+        public async Task<IActionResult> DeleteFollower([FromBody] ProcessFollowRequestContract contract)
         {
-            var model = _mapper.Convert<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.DeleteFollowerAsync(model);
+            var model = _mapper.Map<ProcessFollowRequestModel>(contract);
+            var updated = await _contactsService.DeleteFollower(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -170,10 +183,10 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("UnfollowUser")]
-        public async Task<IActionResult> UnfollowUserAsync([FromBody] SendFollowContract contract)
+        public async Task<IActionResult> UnfollowUser([FromBody] SendFollowContract contract)
         {
-            var model = _mapper.Convert<SendFollowModel>(contract);
-            var updated = await _contactsService.UnfollowUserAsync(model);
+            var model = _mapper.Map<SendFollowModel>(contract);
+            var updated = await _contactsService.UnfollowUser(model);
             if (updated != null)
             {
                 return Ok(updated);
@@ -183,5 +196,5 @@ namespace FitnessApp.ContactsApi.Controllers
                 return StatusCode((int)HttpStatusCode.InternalServerError);
             }
         }
-    }    
+    }
 }

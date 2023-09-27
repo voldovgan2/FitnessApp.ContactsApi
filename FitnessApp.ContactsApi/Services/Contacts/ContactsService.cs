@@ -1,70 +1,44 @@
-﻿using FitnessApp.Abstractions.Db.Entities.Collection;
-using FitnessApp.Abstractions.Db.Enums.Collection;
-using FitnessApp.Abstractions.Models.Collection;
-using FitnessApp.Abstractions.Services.Collection;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
+using FitnessApp.Common.Abstractions.Db.Enums.Collection;
+using FitnessApp.Common.Abstractions.Models.Collection;
+using FitnessApp.Common.Serializer.JsonSerializer;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Models.Input;
-using FitnessApp.IntegrationEvents;
-using FitnessApp.NatsServiceBus;
-using FitnessApp.Serializer.JsonMapper;
-using FitnessApp.Serializer.JsonSerializer;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using FitnessApp.ContactsApi.Models.Output;
+using FitnessApp.ServiceBus.AzureServiceBus.Producer;
 
 namespace FitnessApp.ContactsApi.Services.Contacts
 {
-    public class ContactsService<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel> :
-        IContactsService<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>
-        where Entity : ICollectionEntity
-        where CollectionItemEntity : ICollectionItemEntity
-        where Model : ICollectionModel
-        where CollectionItemModel : ISearchableCollectionItemModel
-        where CreateModel : ICreateCollectionModel
-        where UpdateModel : IUpdateCollectionModel
+    public class ContactsService : IContactsService
     {
-        private readonly IContactsRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel> _repository;
-        private readonly IServiceBus _serviceBus;
-        private readonly IJsonMapper _mapper;
+        private readonly IContactsRepository _repository;
+#pragma warning disable S4487 // Unread "private" fields should be removed
+        private readonly IMessageProducer _messageProducer;
+#pragma warning restore S4487 // Unread "private" fields should be removed
+        private readonly IMapper _mapper;
+#pragma warning disable S4487 // Unread "private" fields should be removed
         private readonly IJsonSerializer _serializer;
+#pragma warning restore S4487 // Unread "private" fields should be removed
 
-        private class InternalUpdateModel
-        {
-            public string UserId { get; }
-            public string CollectionName { get; }
-            public UpdateCollectionAction Action { get; }
-            public string ChangeUserId { get; }
-
-            public InternalUpdateModel(string userId, string collectionName, UpdateCollectionAction action, string changeUserId)
-            {
-                UserId = userId;
-                CollectionName = collectionName;
-                Action = action;
-                ChangeUserId = changeUserId;
-            }
-        }
-
-        public ContactsService
-        (
-            IContactsRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel> repository,
-            IServiceBus serviceBus,
-            IJsonMapper mapper,
-            IJsonSerializer serializer,
-            ILogger<CollectionService<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>> log
-        )
+        public ContactsService(
+            IContactsRepository repository,
+            IMessageProducer messageProducer,
+            IMapper mapper,
+            IJsonSerializer serializer)
         {
             _repository = repository;
-            _serviceBus = serviceBus;
+            _messageProducer = messageProducer;
             _mapper = mapper;
             _serializer = serializer;
         }
 
-        public async Task<IEnumerable<CollectionItemModel>> GetUserContacts(GetUserContactsModel model)
+        public async Task<IEnumerable<ContactCollectionItemModel>> GetUserContacts(GetUserContactsModel model)
         {
-            IEnumerable<CollectionItemModel> result = null;
-            var contactModel = await _repository.GetItemByUserIdAsync(model.UserId);            
+            IEnumerable<ContactCollectionItemModel> result = null;
+            var contactModel = await _repository.GetItemByUserId(model.UserId);
             if (contactModel != null)
             {
                 string collectionName = null;
@@ -83,15 +57,15 @@ namespace FitnessApp.ContactsApi.Services.Contacts
                         collectionName = "FollowingRequests";
                         break;
                 }
-                if(collectionName != null)
-                {
-                    result = _mapper.Convert<IEnumerable<CollectionItemModel>>(contactModel.Collection[collectionName]);
-                }
+
+                if (collectionName != null)
+                    result = _mapper.Map<IEnumerable<ContactCollectionItemModel>>(contactModel.Collection[collectionName]);
             }
+
             return result;
         }
 
-        public async Task<string> CreateItemContacts(CreateModel model)
+        public async Task<string> CreateItemContacts(CreateUserContactsCollectionModel model)
         {
             model.Collection = new Dictionary<string, IEnumerable<ICollectionItemModel>>
             {
@@ -100,151 +74,149 @@ namespace FitnessApp.ContactsApi.Services.Contacts
                 { "FollowRequests", new List<ICollectionItemModel>() },
                 { "FollowingRequests", new List<ICollectionItemModel>() }
             };
-            var result = await _repository.CreateItemAsync(model);
+            var result = await _repository.CreateItem(model);
             return result;
         }
 
-        public async Task<bool?> GetIsFollowerAsync(GetFollowerStatusModel model)
+        public async Task<bool?> GetIsFollower(GetFollowerStatusModel model)
         {
             bool? result = null;
-            var contactModel = await _repository.GetItemByUserIdAsync(model.UserId);
+            var contactModel = await _repository.GetItemByUserId(model.UserId);
             var collection = contactModel.Collection["Followers"];
-            result = collection.Any(f => f.Id == model.UserId);
+            result = collection.Exists(f => f.Id == model.ContactsUserId);
             return result;
         }
 
-        public async Task<string> StartFollowAsync(SendFollowModel model)
+        public async Task<string> StartFollow(SendFollowModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "FollowingRequests", UpdateCollectionAction.Add, model.UserToFollowId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.UserToFollowId, "FollowRequests", UpdateCollectionAction.Add, model.UserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[] 
+            var updateModel1 = CreateUpdateModel(model.UserId, "FollowingRequests", UpdateCollectionAction.Add, model.UserToFollowId);
+            var updateModel2 = CreateUpdateModel(model.UserToFollowId, "FollowRequests", UpdateCollectionAction.Add, model.UserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1, 
-                    internalUpdateModel2 
-                }, 
+                    updateModel1,
+                    updateModel2
+                },
                 model.UserId
             );
             if (result != null)
             {
-                _serviceBus.PublishEvent(Topic.NEW_FOLLOW_REQUEST, _serializer.SerializeToBytes(new NewFollowRequestEvent
+                /*
+                _messageProducer.SendMessage(Topic.NEW_FOLLOW_REQUEST, _serializer.SerializeToBytes(new NewFollowRequestEvent
                 {
                     UserId = model.UserId,
                     UserToFollowId = model.UserToFollowId
                 }));
+                */
             }
+
             return result;
         }
 
-        public async Task<string> AcceptFollowRequestAsync(ProcessFollowRequestModel model)
+        public async Task<string> AcceptFollowRequest(ProcessFollowRequestModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "FollowRequests", UpdateCollectionAction.Remove, model.FollowerUserId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.FollowerUserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserId);
-            var internalUpdateModel3 = new InternalUpdateModel(model.FollowerUserId, "Followings", UpdateCollectionAction.Add, model.UserId);
-            var internalUpdateModel4 = new InternalUpdateModel(model.UserId, "Followers", UpdateCollectionAction.Add, model.FollowerUserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[]
+            var updateModel1 = CreateUpdateModel(model.UserId, "FollowRequests", UpdateCollectionAction.Remove, model.FollowerUserId);
+            var updateModel2 = CreateUpdateModel(model.FollowerUserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserId);
+            var updateModel3 = CreateUpdateModel(model.FollowerUserId, "Followings", UpdateCollectionAction.Add, model.UserId);
+            var updateModel4 = CreateUpdateModel(model.UserId, "Followers", UpdateCollectionAction.Add, model.FollowerUserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1,
-                    internalUpdateModel2,
-                    internalUpdateModel3,
-                    internalUpdateModel4
+                    updateModel1,
+                    updateModel2,
+                    updateModel3,
+                    updateModel4
                 },
                 model.UserId
             );
             return result;
         }
 
-        public async Task<string> RejectFollowRequestAsync(ProcessFollowRequestModel model)
+        public async Task<string> RejectFollowRequest(ProcessFollowRequestModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "FollowRequests", UpdateCollectionAction.Remove, model.FollowerUserId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.FollowerUserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[]
+            var updateModel1 = CreateUpdateModel(model.UserId, "FollowRequests", UpdateCollectionAction.Remove, model.FollowerUserId);
+            var updateModel2 = CreateUpdateModel(model.FollowerUserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1,
-                    internalUpdateModel2
+                    updateModel1,
+                    updateModel2
                 },
                 model.UserId
             );
             return result;
         }
 
-        public async Task<string> DeleteFollowRequestAsync(SendFollowModel model)
+        public async Task<string> DeleteFollowRequest(SendFollowModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserToFollowId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.UserToFollowId, "FollowRequests", UpdateCollectionAction.Remove, model.UserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[]
+            var updateModel1 = CreateUpdateModel(model.UserId, "FollowingRequests", UpdateCollectionAction.Remove, model.UserToFollowId);
+            var updateModel2 = CreateUpdateModel(model.UserToFollowId, "FollowRequests", UpdateCollectionAction.Remove, model.UserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1,
-                    internalUpdateModel2
+                    updateModel1,
+                    updateModel2
                 },
                 model.UserId
             );
             return result;
         }
 
-        public async Task<string> DeleteFollowerAsync(ProcessFollowRequestModel model)
+        public async Task<string> DeleteFollower(ProcessFollowRequestModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "Followers", UpdateCollectionAction.Remove, model.FollowerUserId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.FollowerUserId, "Followings", UpdateCollectionAction.Remove, model.UserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[]
+            var updateModel1 = CreateUpdateModel(model.UserId, "Followers", UpdateCollectionAction.Remove, model.FollowerUserId);
+            var updateModel2 = CreateUpdateModel(model.FollowerUserId, "Followings", UpdateCollectionAction.Remove, model.UserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1,
-                    internalUpdateModel2
+                    updateModel1,
+                    updateModel2
                 },
                 model.UserId
             );
             return result;
         }
 
-        public async Task<string> UnfollowUserAsync(SendFollowModel model)
+        public async Task<string> UnfollowUser(SendFollowModel model)
         {
-            var internalUpdateModel1 = new InternalUpdateModel(model.UserId, "Followings", UpdateCollectionAction.Remove, model.UserToFollowId);
-            var internalUpdateModel2 = new InternalUpdateModel(model.UserToFollowId, "Followers", UpdateCollectionAction.Remove, model.UserId);
-            var result = await HandleFollowRequest
-            (
-                new InternalUpdateModel[]
+            var updateModel1 = CreateUpdateModel(model.UserId, "Followings", UpdateCollectionAction.Remove, model.UserToFollowId);
+            var updateModel2 = CreateUpdateModel(model.UserToFollowId, "Followers", UpdateCollectionAction.Remove, model.UserId);
+            var result = await HandleFollowRequest(
+                new UpdateUserContactCollectionModel[]
                 {
-                    internalUpdateModel1,
-                    internalUpdateModel2
+                    updateModel1,
+                    updateModel2
                 },
                 model.UserId
             );
             return result;
         }
 
-        public async Task<string> DeleteItemAsync(string userId)
+        public async Task<string> DeleteItem(string userId)
         {
-            string result = await _repository.DeleteItemAsync(userId);
+            string result = (await _repository.DeleteItem(userId)).UserId;
             return result;
         }
 
-        private async Task<string> HandleFollowRequest(IEnumerable<InternalUpdateModel> items, string userId)
+        private async Task<string> HandleFollowRequest(IEnumerable<UpdateUserContactCollectionModel> items, string userId)
         {
-            var models = items.Select(item =>  
+            await _repository.UpdateItems(items);
+            return userId;
+        }
+
+        private UpdateUserContactCollectionModel CreateUpdateModel(string userId, string collectionName, UpdateCollectionAction action, string changeUserId)
+        {
+            var model = new UpdateUserContactCollectionModel
             {
-                UpdateModel model = _mapper.Convert<UpdateModel>(item);
-                CollectionItemModel modelModel = _mapper.Convert<CollectionItemModel>(new { });
-                modelModel.Id = item.ChangeUserId;
-                model.Model = modelModel;
-                return model;
-            });
-            var updateResult = await _repository.UpdateItemsAsync(models);
-            if (updateResult != null)
-            {
-                throw new Exception($"Failed to update items: {updateResult}");
-            }
-            return updateResult == null ? 
-                userId 
-                : null;
+                UserId = userId,
+                CollectionName = collectionName,
+                Action = action,
+                Model = new ContactCollectionItemModel
+                {
+                    Id = changeUserId
+                }
+            };
+            return model;
         }
     }
 }

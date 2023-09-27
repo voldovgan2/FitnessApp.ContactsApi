@@ -1,32 +1,23 @@
-﻿using FitnessApp.Abstractions.Db.Configuration;
-using FitnessApp.Abstractions.Db.Entities.Collection;
-using FitnessApp.Abstractions.Db.Repository.Collection;
-using FitnessApp.Abstractions.Models.Collection;
-using FitnessApp.Serializer.JsonMapper;
+﻿using AutoMapper;
+using FitnessApp.Common.Abstractions.Db.DbContext;
+using FitnessApp.Common.Abstractions.Db.Repository.Collection;
+using FitnessApp.ContactsApi.Data.Entities;
+using FitnessApp.ContactsApi.Models.Input;
+using FitnessApp.ContactsApi.Models.Output;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace FitnessApp.ContactsApi.Data
 {
-    public class ContactsRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>
-        : CollectionRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>,
-        IContactsRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>
-        where Entity : ICollectionEntity
-        where CollectionItemEntity : ICollectionItemEntity
-        where Model : ICollectionModel
-        where CollectionItemModel : ISearchableCollectionItemModel
-        where CreateModel : ICreateCollectionModel
-        where UpdateModel : IUpdateCollectionModel
+    public class ContactsRepository
+        : CollectionRepository<UserContactsCollectionEntity, ContactCollectionItemEntity, UserContactsCollectionModel, ContactCollectionItemModel, CreateUserContactsCollectionModel, UpdateUserContactCollectionModel>,
+        IContactsRepository
     {
-        public ContactsRepository
-        (
-            IOptions<MongoDbSettings> settings,
-            IJsonMapper mapper,
-            ILogger<CollectionRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>> log
+        public ContactsRepository(
+            IDbContext<UserContactsCollectionEntity> context,
+            IMapper mapper,
+            ILogger<CollectionRepository<UserContactsCollectionEntity, ContactCollectionItemEntity, UserContactsCollectionModel, ContactCollectionItemModel, CreateUserContactsCollectionModel, UpdateUserContactCollectionModel>> log
         )
-            : base(settings, mapper, log)
-        {
-
-        }
+            : base(context, mapper)
+        { }
     }
 }

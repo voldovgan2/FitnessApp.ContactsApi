@@ -1,37 +1,40 @@
 ﻿using System;
 using System.Threading.Tasks;
-using FitnessApp.ContactsApi.Data.Entities;
 using FitnessApp.ContactsApi.Models.Input;
-using FitnessApp.ContactsApi.Models.Output;
 using FitnessApp.ContactsApi.Services.Contacts;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ContactsApi.Data
 {
-    public class DataInitializer
+    public static class DataInitializer
     {
         public static async Task EnsureContactsAreCreatedAsync(IServiceProvider serviceProvider)
         {
+            await Task.Delay(1000);
+            /*
             using (var scope = serviceProvider.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                var service = services.GetRequiredService<IContactsService<UserContactsEntity, ContactItemEntity, UserContactsModel, ContactItemModel, CreateUserContactsModel, UpdateUserContactModel>> ();
+                var service = services.GetRequiredService<IContactsService> ();
+                for (int k = 0; k < 4; k++)
+                    await service.CreateItemContacts(new CreateUserContactsCollectionModel { UserId = $"user{k}" });
+
                 var adminEmail = "admin@hotmail.com";
                 var adminId = $"ApplicationUser_{adminEmail}";
-                await service.CreateItemContacts(new CreateUserContactsModel { UserId = adminId });
+                await service.CreateItemContacts(new CreateUserContactsCollectionModel { UserId = adminId });
                 for (int k = 0; k < 120; k++)
                 {
                     var email = $"user{k}@hotmail.com";
                     var userId = $"ApplicationUser_{email}";
-                    await service.CreateItemContacts(new CreateUserContactsModel { UserId = userId });
+                    await service.CreateItemContacts(new CreateUserContactsCollectionModel { UserId = userId });
                     if (k < 30)
                     {
-                        await service.StartFollowAsync(new SendFollowModel
+                        await service.StartFollow(new SendFollowModel
                         {
                             UserId = userId,
                             UserToFollowId = adminId
                         });
-                        await service.AcceptFollowRequestAsync(new ProcessFollowRequestModel
+                        await service.AcceptFollowRequest(new ProcessFollowRequestModel
                         {
                             UserId = adminId,
                             FollowerUserId = userId
@@ -39,12 +42,12 @@ namespace ContactsApi.Data
                     }
                     else if (k < 60)
                     {
-                        await service.StartFollowAsync(new SendFollowModel
+                        await service.StartFollow(new SendFollowModel
                         {
                             UserId = adminId,
                             UserToFollowId = userId
                         });
-                        await service.AcceptFollowRequestAsync(new ProcessFollowRequestModel
+                        await service.AcceptFollowRequest(new ProcessFollowRequestModel
                         {
                             UserId = userId,
                             FollowerUserId = adminId
@@ -52,7 +55,7 @@ namespace ContactsApi.Data
                     }
                     else if (k < 90)
                     {
-                        await service.StartFollowAsync(new SendFollowModel
+                        await service.StartFollow(new SendFollowModel
                         {
                             UserId = adminId,
                             UserToFollowId = userId
@@ -60,7 +63,7 @@ namespace ContactsApi.Data
                     }
                     else
                     {
-                        await service.StartFollowAsync(new SendFollowModel
+                        await service.StartFollow(new SendFollowModel
                         {
                             UserId = userId,
                             UserToFollowId = adminId
@@ -68,6 +71,7 @@ namespace ContactsApi.Data
                     }
                 }
             }
+            */
         }
     }
 }

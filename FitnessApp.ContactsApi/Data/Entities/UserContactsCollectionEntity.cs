@@ -1,10 +1,10 @@
-﻿using FitnessApp.Abstractions.Db.Entities.Collection;
+﻿using System.Collections.Generic;
+using FitnessApp.Common.Abstractions.Db.Entities.Collection;
 using MongoDB.Bson.Serialization.Attributes;
-using System.Collections.Generic;
 
 namespace FitnessApp.ContactsApi.Data.Entities
 {
-    public class UserContactsEntity : ICollectionEntity
+    public class UserContactsCollectionEntity : ICollectionEntity
     {
         [BsonId]
         public string UserId { get; set; }

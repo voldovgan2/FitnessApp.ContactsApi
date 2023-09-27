@@ -1,17 +1,10 @@
-﻿using FitnessApp.Abstractions.Db.Entities.Collection;
-using FitnessApp.Abstractions.Db.Repository.Collection;
-using FitnessApp.Abstractions.Models.Collection;
+﻿using FitnessApp.Common.Abstractions.Db.Repository.Collection;
+using FitnessApp.ContactsApi.Models.Input;
+using FitnessApp.ContactsApi.Models.Output;
 
 namespace FitnessApp.ContactsApi.Data
 {
-    public interface IContactsRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>
-        : ICollectionRepository<Entity, CollectionItemEntity, Model, CollectionItemModel, CreateModel, UpdateModel>
-        where Entity : ICollectionEntity
-        where CollectionItemEntity : ICollectionItemEntity
-        where Model : ICollectionModel
-        where CollectionItemModel : ISearchableCollectionItemModel
-        where CreateModel : ICreateCollectionModel
-        where UpdateModel : IUpdateCollectionModel
-    {
-    }
+    public interface IContactsRepository
+        : ICollectionRepository<UserContactsCollectionModel, ContactCollectionItemModel, CreateUserContactsCollectionModel, UpdateUserContactCollectionModel>
+    { }
 }

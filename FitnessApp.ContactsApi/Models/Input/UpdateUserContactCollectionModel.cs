@@ -1,9 +1,9 @@
-﻿using FitnessApp.Abstractions.Db.Enums.Collection;
-using FitnessApp.Abstractions.Models.Collection;
+﻿using FitnessApp.Common.Abstractions.Db.Enums.Collection;
+using FitnessApp.Common.Abstractions.Models.Collection;
 
 namespace FitnessApp.ContactsApi.Models.Input
 {
-    public class UpdateUserContactModel : IUpdateCollectionModel
+    public class UpdateUserContactCollectionModel : IUpdateCollectionModel
     {
         public string UserId { get; set; }
         public string CollectionName { get; set; }
