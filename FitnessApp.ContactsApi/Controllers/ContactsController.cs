@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using System.Net;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using FitnessApp.ContactsApi.Contracts.Input;
@@ -15,7 +15,7 @@ namespace FitnessApp.ContactsApi.Controllers
     [Route("api/[controller]")]
     [Produces("application/json")]
 
-    // [Authorize]
+    [Authorize]
     public class ContactsController : Controller
     {
         private readonly IContactsService _contactsService;
@@ -31,53 +31,31 @@ namespace FitnessApp.ContactsApi.Controllers
         }
 
         [HttpPost("CreateUserContacts")]
-        public async Task<IActionResult> CreateUserContacts([FromBody] CreateUserContactsContract contract)
+        public async Task<UserContactsContract> CreateUserContacts([FromBody] CreateUserContactsContract contract)
         {
             var model = _mapper.Map<CreateUserContactsCollectionModel>(contract);
-            var created = await _contactsService.CreateItemContacts(model);
-            if (created != null)
-            {
-                var result = _mapper.Map<UserContactsContract>(created);
-                return Ok(result);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.CreateItemContacts(model);
+            return _mapper.Map<UserContactsContract>(response);
         }
 
         [HttpGet("GetUserContacts")]
-        public async Task<IActionResult> GetUserContacts([FromQuery]GetUserContactsContract contract)
+        public async Task<IEnumerable<UserContactsContract>> GetUserContacts([FromQuery]GetUserContactsContract contract)
         {
             var model = _mapper.Map<GetUserContactsModel>(contract);
-            var result = await _contactsService.GetUserContacts(model);
-            if (result != null)
-            {
-                return Ok(result.Select(i => _mapper.Map<UserContactsContract>(i)));
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.GetUserContacts(model);
+            return response.Select(_mapper.Map<UserContactsContract>);
         }
 
         [HttpGet("GetIsFollower")]
-        public async Task<IActionResult> GetIsFollower([FromQuery]GetFollowerStatusContract contract)
+        public async Task<bool> GetIsFollower([FromQuery]GetFollowerStatusContract contract)
         {
             var model = _mapper.Map<GetFollowerStatusModel>(contract);
-            var result = await _contactsService.GetIsFollower(model);
-            if (result != null)
-            {
-                return Ok(result.Value);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.GetIsFollower(model);
+            return response;
         }
 
         [HttpGet("GetUserContactsCount/{userId}")]
-        public async Task<IActionResult> GetUserContactsCount([FromRoute]string userId)
+        public async Task<UserContactsCountContract> GetUserContactsCount([FromRoute]string userId)
         {
             var getUserFollowersModel = new GetUserContactsModel
             {
@@ -92,109 +70,60 @@ namespace FitnessApp.ContactsApi.Controllers
             };
             var userFollowings = _contactsService.GetUserContacts(getUserFollowingsModel);
             await Task.WhenAll(userFollowers, userFollowings);
-            if (userFollowers.Result != null && userFollowings.Result != null)
+            return new UserContactsCountContract
             {
-                return Ok(new UserContactsCountContract
-                {
-                    UserId = userId,
-                    FollowersCount = userFollowers.Result.Count(),
-                    FollowingsCount = userFollowings.Result.Count(),
-                });
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+                UserId = userId,
+                FollowersCount = userFollowers.Result.Count(),
+                FollowingsCount = userFollowings.Result.Count(),
+            };
         }
 
         [HttpPost("StartFollow")]
-        public async Task<IActionResult> StartFollow([FromBody] SendFollowContract contract)
+        public async Task<string> StartFollow([FromBody] SendFollowContract contract)
         {
             var model = _mapper.Map<SendFollowModel>(contract);
-            var updated = await _contactsService.StartFollow(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.StartFollow(model);
+            return response;
         }
 
         [HttpPost("AcceptFollowRequest")]
-        public async Task<IActionResult> AcceptFollowRequest([FromBody] ProcessFollowRequestContract contract)
+        public async Task<string> AcceptFollowRequest([FromBody] ProcessFollowRequestContract contract)
         {
             var model = _mapper.Map<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.AcceptFollowRequest(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.AcceptFollowRequest(model);
+            return response;
         }
 
         [HttpPost("RejectFollowRequest")]
-        public async Task<IActionResult> RejectFollowRequest([FromBody] ProcessFollowRequestContract contract)
+        public async Task<string> RejectFollowRequest([FromBody] ProcessFollowRequestContract contract)
         {
             var model = _mapper.Map<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.RejectFollowRequest(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.RejectFollowRequest(model);
+            return response;
         }
 
         [HttpPost("DeleteFollowRequest")]
-        public async Task<IActionResult> DeleteFollowRequest([FromBody] SendFollowContract contract)
+        public async Task<string> DeleteFollowRequest([FromBody] SendFollowContract contract)
         {
             var model = _mapper.Map<SendFollowModel>(contract);
-            var updated = await _contactsService.DeleteFollowRequest(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.DeleteFollowRequest(model);
+            return response;
         }
 
         [HttpPost("DeleteFollower")]
-        public async Task<IActionResult> DeleteFollower([FromBody] ProcessFollowRequestContract contract)
+        public async Task<string> DeleteFollower([FromBody] ProcessFollowRequestContract contract)
         {
             var model = _mapper.Map<ProcessFollowRequestModel>(contract);
-            var updated = await _contactsService.DeleteFollower(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.DeleteFollower(model);
+            return response;
         }
 
         [HttpPost("UnfollowUser")]
-        public async Task<IActionResult> UnfollowUser([FromBody] SendFollowContract contract)
+        public async Task<string> UnfollowUser([FromBody] SendFollowContract contract)
         {
             var model = _mapper.Map<SendFollowModel>(contract);
-            var updated = await _contactsService.UnfollowUser(model);
-            if (updated != null)
-            {
-                return Ok(updated);
-            }
-            else
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError);
-            }
+            var response = await _contactsService.UnfollowUser(model);
+            return response;
         }
     }
 }

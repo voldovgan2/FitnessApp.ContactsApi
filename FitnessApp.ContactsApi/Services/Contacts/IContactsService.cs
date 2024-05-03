@@ -9,7 +9,7 @@ namespace FitnessApp.ContactsApi.Services.Contacts
     {
         Task<IEnumerable<ContactCollectionItemModel>> GetUserContacts(GetUserContactsModel model);
         Task<string> CreateItemContacts(CreateUserContactsCollectionModel model);
-        Task<bool?> GetIsFollower(GetFollowerStatusModel model);
+        Task<bool> GetIsFollower(GetFollowerStatusModel model);
         Task<string> StartFollow(SendFollowModel model);
         Task<string> AcceptFollowRequest(ProcessFollowRequestModel model);
         Task<string> RejectFollowRequest(ProcessFollowRequestModel model);

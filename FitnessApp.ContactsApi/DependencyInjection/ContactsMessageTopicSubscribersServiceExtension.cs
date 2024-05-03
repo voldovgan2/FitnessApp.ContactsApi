@@ -1,9 +1,8 @@
 ﻿using System;
 using FitnessApp.Common.Serializer.JsonSerializer;
+using FitnessApp.Common.ServiceBus.Nats.Services;
 using FitnessApp.ContactsApi.Services.Contacts;
 using FitnessApp.ContactsApi.Services.MessageBus;
-using FitnessApp.ServiceBus.AzureServiceBus.TopicSubscribers;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessApp.ContactsApi.DependencyInjection
@@ -12,16 +11,14 @@ namespace FitnessApp.ContactsApi.DependencyInjection
     {
         public static IServiceCollection AddContactsMessageTopicSubscribersService(this IServiceCollection services)
         {
-            if (services == null) throw new ArgumentNullException(nameof(services));
+            ArgumentNullException.ThrowIfNull(services);
 
-            services.AddTransient<ITopicSubscribers, ContactsMessageTopicSubscribersService>(
+            services.AddTransient(
                 sp =>
                 {
-                    var configuration = sp.GetRequiredService<IConfiguration>();
-                    var subscription = configuration.GetValue<string>("ServiceBusSubscriptionName");
                     return new ContactsMessageTopicSubscribersService(
+                        sp.GetRequiredService<IServiceBus>(),
                         sp.GetRequiredService<IContactsService>().CreateItemContacts,
-                        subscription,
                         sp.GetRequiredService<IJsonSerializer>()
                     );
                 }

@@ -10,10 +10,11 @@ namespace FitnessApp.ContactsApi.DependencyInjection
 {
     public static class ContactsRepositoryExtension
     {
-        public static IServiceCollection AddContactsRepository(this IServiceCollection services)
+        public static IServiceCollection ConfigureContactsRepository(this IServiceCollection services)
         {
             if (services == null) throw new ArgumentNullException(nameof(services));
 
+            services.AddTransient<IDbContext<UserContactsCollectionEntity>, DbContext<UserContactsCollectionEntity>>();
             services.AddTransient<IContactsRepository, ContactsRepository>(
                 sp =>
                 {

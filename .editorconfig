@@ -138,10 +138,10 @@ csharp_style_prefer_extended_property_pattern = true:suggestion
 # CS1591: Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = none
 
-# S125: Sections of code should not be commented out
 dotnet_diagnostic.S125.severity = none
 dotnet_diagnostic.SA1601.severity = silent
-dotnet_diagnostic.S1118.severity = warning
+dotnet_diagnostic.S1118.severity = silent
+dotnet_diagnostic.SA1310.severity = silent
 
 [*.{cs,vb}]
 #### Naming styles ####
