@@ -1,5 +1,4 @@
 ﻿using System;
-using FitnessApp.Common.Serializer.JsonSerializer;
 using FitnessApp.Common.ServiceBus.Nats.Services;
 using FitnessApp.ContactsApi.Services.Contacts;
 using FitnessApp.ContactsApi.Services.MessageBus;
@@ -18,9 +17,7 @@ namespace FitnessApp.ContactsApi.DependencyInjection
                 {
                     return new ContactsMessageTopicSubscribersService(
                         sp.GetRequiredService<IServiceBus>(),
-                        sp.GetRequiredService<IContactsService>().CreateItemContacts,
-                        sp.GetRequiredService<IJsonSerializer>()
-                    );
+                        sp.GetRequiredService<IContactsService>().CreateItemContacts);
                 }
             );
 

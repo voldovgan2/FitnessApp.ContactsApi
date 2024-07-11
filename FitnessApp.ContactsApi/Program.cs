@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using FitnessApp.Common.Configuration;
-using FitnessApp.Common.Serializer.JsonSerializer;
 using FitnessApp.ContactsApi;
 using FitnessApp.ContactsApi.Data.Entities;
 using FitnessApp.ContactsApi.DependencyInjection;
@@ -26,7 +25,6 @@ BsonClassMap.RegisterClassMap<ContactCollectionItemEntity>(cm =>
 {
     cm.MapMember(c => c.Id);
 });
-builder.Services.AddTransient<IJsonSerializer, JsonSerializer>();
 builder.Services.ConfigureMongo(builder.Configuration);
 builder.Services.ConfigureVault(builder.Configuration);
 builder.Services.ConfigureContactsRepository();

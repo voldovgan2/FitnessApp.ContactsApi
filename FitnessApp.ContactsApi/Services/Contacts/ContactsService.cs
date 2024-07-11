@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FitnessApp.Common.Abstractions.Db.Enums.Collection;
 using FitnessApp.Common.Abstractions.Models.Collection;
-using FitnessApp.Common.Serializer.JsonSerializer;
+using FitnessApp.Common.Serializer;
 using FitnessApp.Common.ServiceBus.Nats;
 using FitnessApp.Common.ServiceBus.Nats.Events;
 using FitnessApp.Common.ServiceBus.Nats.Services;
@@ -16,8 +16,7 @@ namespace FitnessApp.ContactsApi.Services.Contacts
     public class ContactsService(
         IContactsRepository repository,
         IServiceBus serviceBus,
-        IMapper mapper,
-        IJsonSerializer serializer) : IContactsService
+        IMapper mapper) : IContactsService
     {
         public async Task<IEnumerable<ContactCollectionItemModel>> GetUserContacts(GetUserContactsModel model)
         {
@@ -83,7 +82,7 @@ namespace FitnessApp.ContactsApi.Services.Contacts
             );
             if (result != null)
             {
-                serviceBus.PublishEvent(Topic.NEW_FOLLOW_REQUEST, serializer.SerializeToBytes(new NewFollowRequest
+                serviceBus.PublishEvent(Topic.NEW_FOLLOW_REQUEST, JsonConvertHelper.SerializeToBytes(new NewFollowRequest
                 {
                     UserId = model.UserId,
                     UserToFollowId = model.UserToFollowId
