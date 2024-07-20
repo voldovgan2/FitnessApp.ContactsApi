@@ -2,21 +2,16 @@
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using FitnessApp.Common.Abstractions.Controllers;
 using FitnessApp.ContactsApi.Contracts.Input;
 using FitnessApp.ContactsApi.Contracts.Output;
 using FitnessApp.ContactsApi.Models.Input;
 using FitnessApp.ContactsApi.Services.Contacts;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessApp.ContactsApi.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-
-[Authorize]
-public class ContactsController(IContactsService contactsService, IMapper mapper) : Controller
+public class ContactsController(IContactsService contactsService, IMapper mapper) : FitnessAppBaseController
 {
     [HttpPost("CreateUserContacts")]
     public async Task<UserContactsContract> CreateUserContacts([FromBody] CreateUserContactsContract contract)
