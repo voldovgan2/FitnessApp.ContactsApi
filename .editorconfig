@@ -90,7 +90,7 @@ dotnet_diagnostic.SA1503.severity = None
 csharp_using_directive_placement = outside_namespace:silent
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_prefer_braces = true:silent
-csharp_style_namespace_declarations = block_scoped:silent
+csharp_style_namespace_declarations = file_scoped:error
 csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_top_level_statements = true:silent
 csharp_style_expression_bodied_methods = false:silent
@@ -142,6 +142,7 @@ dotnet_diagnostic.S125.severity = none
 dotnet_diagnostic.SA1601.severity = silent
 dotnet_diagnostic.S1118.severity = silent
 dotnet_diagnostic.SA1310.severity = silent
+csharp_style_prefer_primary_constructors = true:suggestion
 
 [*.{cs,vb}]
 #### Naming styles ####

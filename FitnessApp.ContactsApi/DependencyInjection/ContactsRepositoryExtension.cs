@@ -4,29 +4,23 @@ using FitnessApp.Common.Abstractions.Db.DbContext;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
-namespace FitnessApp.ContactsApi.DependencyInjection
+namespace FitnessApp.ContactsApi.DependencyInjection;
+
+public static class ContactsRepositoryExtension
 {
-    public static class ContactsRepositoryExtension
+    public static IServiceCollection ConfigureContactsRepository(this IServiceCollection services)
     {
-        public static IServiceCollection ConfigureContactsRepository(this IServiceCollection services)
-        {
-            if (services == null) throw new ArgumentNullException(nameof(services));
+        ArgumentNullException.ThrowIfNull(services);
 
-            services.AddTransient<IDbContext<UserContactsCollectionEntity>, DbContext<UserContactsCollectionEntity>>();
-            services.AddTransient<IContactsRepository, ContactsRepository>(
-                sp =>
-                {
-                    return new ContactsRepository(
-                        sp.GetRequiredService<IDbContext<UserContactsCollectionEntity>>(),
-                        sp.GetRequiredService<IMapper>(),
-                        sp.GetRequiredService<ILogger<ContactsRepository>>()
-                    );
-                }
-            );
+        services.AddTransient<IDbContext<UserContactsCollectionEntity>, DbContext<UserContactsCollectionEntity>>();
+        services.AddTransient<IContactsRepository, ContactsRepository>(
+            sp =>
+            {
+                return new ContactsRepository(sp.GetRequiredService<IDbContext<UserContactsCollectionEntity>>(), sp.GetRequiredService<IMapper>());
+            }
+        );
 
-            return services;
-        }
+        return services;
     }
 }

@@ -1,10 +1,9 @@
-﻿namespace FitnessApp.ContactsApi.Enums
+﻿namespace FitnessApp.ContactsApi.Enums;
+
+public enum ContactsType
 {
-    public enum ContactsType
-    {
-        Followers,
-        Followings,
-        FollowRequests,
-        FollowingsRequests
-    }
+    Followers,
+    Followings,
+    FollowRequests,
+    FollowingsRequests
 }

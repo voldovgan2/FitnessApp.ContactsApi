@@ -1,9 +1,8 @@
 ﻿using FitnessApp.Common.Abstractions.Models.Collection;
 
-namespace FitnessApp.ContactsApi.Models.Output
+namespace FitnessApp.ContactsApi.Models.Output;
+
+public class ContactCollectionItemModel : ICollectionItemModel
 {
-    public class ContactCollectionItemModel : ICollectionItemModel
-    {
-        public string Id { get; set; }
-    }
+    public string Id { get; set; }
 }

@@ -2,9 +2,11 @@
 using FitnessApp.ContactsApi.Models.Input;
 using FitnessApp.ContactsApi.Models.Output;
 
-namespace FitnessApp.ContactsApi.Data
-{
-    public interface IContactsRepository
-        : ICollectionRepository<UserContactsCollectionModel, ContactCollectionItemModel, CreateUserContactsCollectionModel, UpdateUserContactCollectionModel>
-    { }
-}
+namespace FitnessApp.ContactsApi.Data;
+
+public interface IContactsRepository :
+    ICollectionRepository<
+        UserContactsCollectionModel,
+        ContactCollectionItemModel,
+        CreateUserContactsCollectionModel,
+        UpdateUserContactCollectionModel>;

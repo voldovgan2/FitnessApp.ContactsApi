@@ -1,9 +1,8 @@
-﻿namespace FitnessApp.ContactsApi.Contracts.Output
+﻿namespace FitnessApp.ContactsApi.Contracts.Output;
+
+public class UserContactsCountContract
 {
-    public class UserContactsCountContract
-    {
-        public string UserId { get; set; }
-        public int FollowersCount { get; set; }
-        public int FollowingsCount { get; set; }
-    }
+    public string UserId { get; set; }
+    public int FollowersCount { get; set; }
+    public int FollowingsCount { get; set; }
 }

@@ -1,7 +1,6 @@
-﻿namespace FitnessApp.ContactsApi.Contracts.Input
+﻿namespace FitnessApp.ContactsApi.Contracts.Input;
+
+public class CreateUserContactsContract
 {
-    public class CreateUserContactsContract
-    {
-        public string UserId { get; set; }
-    }
+    public string UserId { get; set; }
 }

@@ -1,8 +1,7 @@
-﻿namespace FitnessApp.ContactsApi.Contracts.Input
+﻿namespace FitnessApp.ContactsApi.Contracts.Input;
+
+public class SendFollowContract
 {
-    public class SendFollowContract
-    {
-        public string UserId { get; set; }
-        public string UserToFollowId { get; set; }
-    }
+    public string UserId { get; set; }
+    public string UserToFollowId { get; set; }
 }
