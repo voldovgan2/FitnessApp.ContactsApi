@@ -16,9 +16,11 @@ public class MappingProfile : Profile
         #region Contract 2 GenericModel
         CreateMap<CreateUserContactsContract, CreateUserContactsCollectionModel>();
         CreateMap<GetUserContactsContract, GetUserContactsModel>();
-        CreateMap<GetFollowerStatusContract, GetFollowerStatusModel>();
+        CreateMap<GetFollowersStatusContract, GetFollowersStatusModel>();
         CreateMap<SendFollowContract, SendFollowModel>();
         CreateMap<ProcessFollowRequestContract, ProcessFollowRequestModel>();
+        CreateMap<GetFollowersStatusContract, GetFollowersStatusModel>();
+        CreateMap<GetFollowerStatusContract, GetFollowerStatusModel>();
         #endregion
 
         #region CollectionModel 2 CollectionEntity
@@ -44,6 +46,7 @@ public class MappingProfile : Profile
             .ForMember(c => c.UserId, m => m.MapFrom(i => i.Id));
         CreateMap<string, UserContactsContract>()
             .ForMember(c => c.UserId, m => m.MapFrom(i => i));
+        CreateMap<FollowerStatusModel, FollowerStatusContract>();
         #endregion
     }
 

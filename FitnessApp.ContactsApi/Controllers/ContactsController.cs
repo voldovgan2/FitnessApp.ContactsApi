@@ -37,6 +37,14 @@ public class ContactsController(IContactsService contactsService, IMapper mapper
         return response;
     }
 
+    [HttpPost("GetIsFollowers")]
+    public async Task<IEnumerable<FollowerStatusContract>> GetIsFollowers([FromBody] GetFollowersStatusContract contract)
+    {
+        var model = mapper.Map<GetFollowersStatusModel>(contract);
+        var response = await contactsService.GetIsFollowers(model);
+        return response.Select(mapper.Map<FollowerStatusContract>);
+    }
+
     [HttpGet("GetUserContactsCount/{userId}")]
     public async Task<UserContactsCountContract> GetUserContactsCount([FromRoute]string userId)
     {

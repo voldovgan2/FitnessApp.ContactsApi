@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using FitnessApp.Common.Abstractions.Db.Enums.Collection;
@@ -66,6 +67,19 @@ public class ContactsService(
         var contactModel = await repository.GetItemByUserId(model.UserId);
         var collection = contactModel.Collection["Followers"];
         bool result = collection.Exists(f => f.Id == model.ContactsUserId);
+        return result;
+    }
+
+    public async Task<IEnumerable<FollowerStatusModel>> GetIsFollowers(GetFollowersStatusModel model)
+    {
+        var result = model.UserIds.Select(userId => new FollowerStatusModel { UserId = userId });
+        foreach (var item in result)
+        {
+            var contactModel = await repository.GetItemByUserId(item.UserId);
+            var collection = contactModel.Collection["Followers"];
+            item.IsFollower = collection.Exists(f => f.Id == model.ContactsUserId);
+        }
+
         return result;
     }
 
