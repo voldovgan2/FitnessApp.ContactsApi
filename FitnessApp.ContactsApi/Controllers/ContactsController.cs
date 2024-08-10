@@ -13,14 +13,6 @@ namespace FitnessApp.ContactsApi.Controllers;
 
 public class ContactsController(IContactsService contactsService, IMapper mapper) : FitnessAppBaseController
 {
-    [HttpPost("CreateUserContacts")]
-    public async Task<UserContactsContract> CreateUserContacts([FromBody] CreateUserContactsContract contract)
-    {
-        var model = mapper.Map<CreateUserContactsCollectionModel>(contract);
-        var response = await contactsService.CreateItemContacts(model);
-        return mapper.Map<UserContactsContract>(response);
-    }
-
     [HttpGet("GetUserContacts")]
     public async Task<IEnumerable<UserContactsContract>> GetUserContacts([FromQuery]GetUserContactsContract contract)
     {
@@ -67,6 +59,14 @@ public class ContactsController(IContactsService contactsService, IMapper mapper
             FollowersCount = userFollowers.Result.Count(),
             FollowingsCount = userFollowings.Result.Count(),
         };
+    }
+
+    [HttpPost("CreateUserContacts")]
+    public async Task<UserContactsContract> CreateUserContacts([FromBody] CreateUserContactsContract contract)
+    {
+        var model = mapper.Map<CreateUserContactsCollectionModel>(contract);
+        var response = await contactsService.CreateItemContacts(model);
+        return mapper.Map<UserContactsContract>(response);
     }
 
     [HttpPost("StartFollow")]

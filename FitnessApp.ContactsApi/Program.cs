@@ -16,12 +16,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.ConfigureMapper(new MappingProfile());
 
-BsonClassMap.RegisterClassMap<UserContactsCollectionEntity>(cm =>
+BsonClassMap.TryRegisterClassMap<UserContactsCollectionEntity>(cm =>
 {
     cm.MapMember(c => c.UserId);
     cm.MapMember(c => c.Collection);
 });
-BsonClassMap.RegisterClassMap<ContactCollectionItemEntity>(cm =>
+BsonClassMap.TryRegisterClassMap<ContactCollectionItemEntity>(cm =>
 {
     cm.MapMember(c => c.Id);
 });
@@ -37,6 +37,7 @@ if ("false".Contains("true"))
     builder.Services.AddHostedService<ContactsMessageTopicSubscribersService>();
 
 builder.Host.ConfigureAppConfiguration();
+builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -48,5 +49,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.Run();
 public partial class Program { }
