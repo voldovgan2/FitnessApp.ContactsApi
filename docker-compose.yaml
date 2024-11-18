@@ -1,0 +1,22 @@
+services:
+      
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+      
+  mongo-express:
+    image: mongo-express
+    ports:
+      - '8081:8081'
+
+  redis: 
+    container_name: redis
+    image: redis
+    ports:
+      - 6379:6379
+      
+  redisinsight:
+    image: redis/redisinsight
+    ports:
+      - '5540:5540'

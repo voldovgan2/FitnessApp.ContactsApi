@@ -82,11 +82,24 @@ dotnet_diagnostic.SA1502.severity = None
 # Closing parenthesis should not be preceded by a space
 dotnet_diagnostic.SA1009.severity = None
 
+# An opening square bracket should never be preceded by whitespace
+dotnet_diagnostic.SA1010.severity = None
+
 # Closing parenthesis should be on line of last parameter
 dotnet_diagnostic.SA1111.severity = None
 
+# The annotation for nullable reference types should only be used in code within a '#nullable' context
+dotnet_diagnostic.CS8632.severity = None
+
 # Braces should not be ommitted
 dotnet_diagnostic.SA1503.severity = None
+
+# For clarity, all overloads of the same method should be grouped together
+dotnet_diagnostic.S4136.severity = None
+
+# Member initializers should be removed because all constructors supposedly already set a value for the members
+dotnet_diagnostic.S3604.severity = None
+
 csharp_using_directive_placement = outside_namespace:silent
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_prefer_braces = true:silent

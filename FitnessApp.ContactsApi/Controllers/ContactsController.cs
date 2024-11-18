@@ -1,119 +1,76 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
-using FitnessApp.Common.Abstractions.Controllers;
-using FitnessApp.ContactsApi.Contracts.Input;
-using FitnessApp.ContactsApi.Contracts.Output;
-using FitnessApp.ContactsApi.Models.Input;
-using FitnessApp.ContactsApi.Services.Contacts;
+using FitnessApp.ContactsApi.Interfaces;
+using FitnessApp.ContactsApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessApp.ContactsApi.Controllers;
 
-public class ContactsController(IContactsService contactsService, IMapper mapper) : FitnessAppBaseController
+public class ContactsController(IContactsService contactsService) : Controller
 {
-    [HttpGet("GetUserContacts")]
-    public async Task<IEnumerable<UserContactsContract>> GetUserContacts([FromQuery]GetUserContactsContract contract)
+    [HttpGet("CreateSavaAndHfed")]
+    public async Task CreateSavaAndHfed()
     {
-        var model = mapper.Map<GetUserContactsModel>(contract);
-        var response = await contactsService.GetUserContacts(model);
-        return response.Select(mapper.Map<UserContactsContract>);
+        await CreateUser("Igor", "Sava");
+
+        // await CreateUser("Fedir", "Nedashkovskiy");
+        // await CreateUser("Pedir", "Nedashkovskiy");
+        // await CreateUser("Pedir", "Nedoshok");
+        await CreateUser("Fehin", "Nedoshok");
+
+        await CreateUser("Pehin", "Nedoshok");
+
+        // await CreateUser("Pedtse", "Nedoshok");
+        await CreateUser("Fedtse", "Nedoshok");
+
+        // await CreateUser("Hfedir", "Nedoshok");
+        // await CreateUser("Hfehin", "Nedoshok");
+        // await CreateUser("Pedir", "Nedoshko");
+        // await CreateUser("Fehin", "Nedoshko");
+        // await CreateUser("Pehin", "Nedoshko");
+        // await CreateUser("Pedtse", "Nedoshko");
+        // await CreateUser("Fedtse", "Nedoshko");
+        // await CreateUser("Hfedir", "Nedoshko");
+        // await CreateUser("Hfehin", "Nedoshko");
     }
 
-    [HttpGet("GetIsFollower")]
-    public async Task<bool> GetIsFollower([FromQuery]GetFollowerStatusContract contract)
+    [HttpGet("HfedFollowsSava")]
+    public async Task HfedFollowsSava()
     {
-        var model = mapper.Map<GetFollowerStatusModel>(contract);
-        var response = await contactsService.GetIsFollower(model);
-        return response;
+        var sava = (await GetUsers("Sa")).Single();
+        var fehin = (await GetUsers("Fe")).Find(feh => feh.FirstName == "Fehin" && feh.LastName == "Nedoshok");
+        await contactsService.FollowUser(fehin.UserId, sava.UserId);
+        var fedtse = (await GetUsers("Fe")).Find(feh => feh.FirstName == "Fedtse" && feh.LastName == "Nedoshok");
+        await contactsService.FollowUser(fedtse.UserId, sava.UserId);
+        var pehin = (await GetUsers("Pe")).Find(feh => feh.FirstName == "Pehin" && feh.LastName == "Nedoshok");
+        await contactsService.FollowUser(pehin.UserId, sava.UserId);
     }
 
-    [HttpPost("GetIsFollowers")]
-    public async Task<IEnumerable<FollowerStatusContract>> GetIsFollowers([FromBody] GetFollowersStatusContract contract)
+    [HttpGet("GetHfedThatFollowsSava")]
+    public async Task<List<UserModel>> GetHfedThatFollowsSava()
     {
-        var model = mapper.Map<GetFollowersStatusModel>(contract);
-        var response = await contactsService.GetIsFollowers(model);
-        return response.Select(mapper.Map<FollowerStatusContract>);
+        var sava = (await GetUsers("Sa")).Single();
+        var model = new GetUsersModel { Search = "f", Page = 0, PageSize = 10 };
+        var users = await contactsService.GetUserFollowers(sava.UserId, model);
+        return users.Items.ToList();
     }
 
-    [HttpGet("GetUserContactsCount/{userId}")]
-    public async Task<UserContactsCountContract> GetUserContactsCount([FromRoute]string userId)
+    private async Task CreateUser(string firstName, string lastName)
     {
-        var getUserFollowersModel = new GetUserContactsModel
+        await contactsService.AddUser(new UserModel
         {
-            UserId = userId,
-            ContactsType = Enums.ContactsType.Followers
-        };
-        var userFollowers = contactsService.GetUserContacts(getUserFollowersModel);
-        var getUserFollowingsModel = new GetUserContactsModel
-        {
-            UserId = userId,
-            ContactsType = Enums.ContactsType.Followings
-        };
-        var userFollowings = contactsService.GetUserContacts(getUserFollowingsModel);
-        await Task.WhenAll(userFollowers, userFollowings);
-        return new UserContactsCountContract
-        {
-            UserId = userId,
-            FollowersCount = userFollowers.Result.Count(),
-            FollowingsCount = userFollowings.Result.Count(),
-        };
+            UserId = Guid.NewGuid().ToString("N"),
+            FirstName = firstName,
+            LastName = lastName,
+        });
     }
 
-    [HttpPost("CreateUserContacts")]
-    public async Task<UserContactsContract> CreateUserContacts([FromBody] CreateUserContactsContract contract)
+    private async Task<List<UserModel>> GetUsers(string seatch)
     {
-        var model = mapper.Map<CreateUserContactsCollectionModel>(contract);
-        var response = await contactsService.CreateItemContacts(model);
-        return mapper.Map<UserContactsContract>(response);
-    }
-
-    [HttpPost("StartFollow")]
-    public async Task<string> StartFollow([FromBody] SendFollowContract contract)
-    {
-        var model = mapper.Map<SendFollowModel>(contract);
-        var response = await contactsService.StartFollow(model);
-        return response;
-    }
-
-    [HttpPost("AcceptFollowRequest")]
-    public async Task<string> AcceptFollowRequest([FromBody] ProcessFollowRequestContract contract)
-    {
-        var model = mapper.Map<ProcessFollowRequestModel>(contract);
-        var response = await contactsService.AcceptFollowRequest(model);
-        return response;
-    }
-
-    [HttpPost("RejectFollowRequest")]
-    public async Task<string> RejectFollowRequest([FromBody] ProcessFollowRequestContract contract)
-    {
-        var model = mapper.Map<ProcessFollowRequestModel>(contract);
-        var response = await contactsService.RejectFollowRequest(model);
-        return response;
-    }
-
-    [HttpPost("DeleteFollowRequest")]
-    public async Task<string> DeleteFollowRequest([FromBody] SendFollowContract contract)
-    {
-        var model = mapper.Map<SendFollowModel>(contract);
-        var response = await contactsService.DeleteFollowRequest(model);
-        return response;
-    }
-
-    [HttpPost("DeleteFollower")]
-    public async Task<string> DeleteFollower([FromBody] ProcessFollowRequestContract contract)
-    {
-        var model = mapper.Map<ProcessFollowRequestModel>(contract);
-        var response = await contactsService.DeleteFollower(model);
-        return response;
-    }
-
-    [HttpPost("UnfollowUser")]
-    public async Task<string> UnfollowUser([FromBody] SendFollowContract contract)
-    {
-        var model = mapper.Map<SendFollowModel>(contract);
-        var response = await contactsService.UnfollowUser(model);
-        return response;
+        var model = new GetUsersModel { Search = seatch, Page = 0, PageSize = 10 };
+        var users = await contactsService.GetUsers(model);
+        return [..users.Items];
     }
 }

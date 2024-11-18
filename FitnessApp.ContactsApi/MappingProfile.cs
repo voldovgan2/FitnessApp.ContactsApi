@@ -1,11 +1,7 @@
-﻿using System.Collections.Generic;
-using AutoMapper;
-using FitnessApp.Common.Abstractions.Db.Entities.Collection;
-using FitnessApp.ContactsApi.Contracts.Input;
-using FitnessApp.ContactsApi.Contracts.Output;
-using FitnessApp.ContactsApi.Data.Entities;
-using FitnessApp.ContactsApi.Models.Input;
-using FitnessApp.ContactsApi.Models.Output;
+﻿using AutoMapper;
+using FitnessApp.Common.Paged.Models.Output;
+using FitnessApp.ContactsApi.Data;
+using FitnessApp.ContactsApi.Models;
 
 namespace FitnessApp.ContactsApi;
 
@@ -13,60 +9,13 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        #region Contract 2 GenericModel
-        CreateMap<CreateUserContactsContract, CreateUserContactsCollectionModel>();
-        CreateMap<GetUserContactsContract, GetUserContactsModel>();
-        CreateMap<GetFollowersStatusContract, GetFollowersStatusModel>();
-        CreateMap<SendFollowContract, SendFollowModel>();
-        CreateMap<ProcessFollowRequestContract, ProcessFollowRequestModel>();
-        CreateMap<GetFollowersStatusContract, GetFollowersStatusModel>();
-        CreateMap<GetFollowerStatusContract, GetFollowerStatusModel>();
-        #endregion
+        CreateMap<SearchUserEntity, UserEntity>()
+        .ForMember(e => e.FollowersCount, m => m.Ignore())
+            .ForMember(e => e.CategoryDate, m => m.Ignore());
 
-        #region CollectionModel 2 CollectionEntity
-        CreateMap<UserContactsCollectionModel, UserContactsCollectionEntity>();
-        CreateMap<CreateUserContactsCollectionModel, UserContactsCollectionEntity>();
-        #endregion
-
-        #region CollectionItemModel 2 CollectionItemEntity
-        CreateMap<ContactCollectionItemModel, ContactCollectionItemEntity>();
-        #endregion
-
-        #region CollectionItemEntity 2 CollectionItemModel
-        CreateMap<ContactCollectionItemEntity, ContactCollectionItemModel>();
-        #endregion
-
-        #region CollectionEntity 2 CollectionModel
-        CreateMap<UserContactsCollectionEntity, UserContactsCollectionModel>()
-            .ForMember(e => e.Collection, m => m.MapFrom(o => CollectionEntitiesToCollectionModels(o.Collection)));
-        #endregion
-
-        #region CollectionItemModel 2 Contract
-        CreateMap<ContactCollectionItemModel, UserContactsContract>()
-            .ForMember(c => c.UserId, m => m.MapFrom(i => i.Id));
-        CreateMap<string, UserContactsContract>()
-            .ForMember(c => c.UserId, m => m.MapFrom(i => i));
-        CreateMap<FollowerStatusModel, FollowerStatusContract>();
-        #endregion
-    }
-
-    private Dictionary<string, List<ContactCollectionItemModel>> CollectionEntitiesToCollectionModels(Dictionary<string, List<ICollectionItemEntity>> collections)
-    {
-        var result = new Dictionary<string, List<ContactCollectionItemModel>>();
-        foreach (var kvp in collections)
-        {
-            var list = new List<ContactCollectionItemModel>();
-            foreach (var item in kvp.Value)
-            {
-                list.Add(new ContactCollectionItemModel
-                {
-                    Id = item.Id
-                });
-            }
-
-            result.Add(kvp.Key, list);
-        }
-
-        return result;
+        CreateMap<PagedDataModel<SearchUserEntity>, PagedDataModel<UserModel>>();
+        CreateMap<UserModel, UserEntity>();
+        CreateMap<UserEntity, FirstCharSearchUserEntity>();
+        CreateMap<FirstCharSearchUserEntity, UserModel>();
     }
 }
