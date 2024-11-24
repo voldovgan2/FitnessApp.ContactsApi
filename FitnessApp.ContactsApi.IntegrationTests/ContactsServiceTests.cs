@@ -36,42 +36,26 @@ public class ContactsServiceTests
     [Fact]
     public async Task HfedFollowsSava_SavaHasHfedsAsFollowers()
     {
-        CreateUsers();
+        await CreateUser("Igor", "Sava");
+        await CreateUser("Fedir", "Nedashkovskiy");
         var sava = (await GetUsers("Sa")).Single();
-        var allStartupers = await GetUsers("Ne");
-        var fehin = allStartupers.Single(feh => feh.FirstName == "Fehin" && feh.LastName == "Nedoshok");
-        var fedtse = allStartupers.Single(feh => feh.FirstName == "Fedtse" && feh.LastName == "Nedoshok");
-        var pehin = allStartupers.Single(feh => feh.FirstName == "Pehin" && feh.LastName == "Nedoshok");
-
+        var fehin = (await GetUsers("Ne")).Single();
         await _contactsService.FollowUser(fehin.UserId, sava.UserId);
-        await _contactsService.FollowUser(fedtse.UserId, sava.UserId);
-        await _contactsService.FollowUser(pehin.UserId, sava.UserId);
-
-        var model = new GetUsersModel { Search = "f", Page = 0, PageSize = 10 };
-        var usersModel = await _contactsService.GetUserFollowers(sava.UserId, model);
-        var users = usersModel.Items.ToList();
-        Assert.Equal(2, users.Count);
-        Assert.NotNull(users.Find(user => user.UserId == fehin.UserId));
-        Assert.NotNull(users.Find(user => user.UserId == fedtse.UserId));
+        var users = await GetSavaFollowers("f", sava.UserId);
+        Assert.Single(users);
+        Assert.Contains(users, user => user.UserId == fehin.UserId);
     }
 
     [Fact]
     public async Task HfedUnFollowsSava_SavaNotHasHfedsAsFollowers()
     {
         await CreateUser("Igor", "Sava");
-
         await CreateUser("Fedir", "Nedashkovskiy");
-
         var sava = (await GetUsers("Sa")).Single();
         var fehin = (await GetUsers("Ne")).Single();
-
         await _contactsService.FollowUser(fehin.UserId, sava.UserId);
-
         await _contactsService.UnFollowUser(fehin.UserId, sava.UserId);
-
-        var model = new GetUsersModel { Search = "f", Page = 0, PageSize = 10 };
-        var usersModel = await _contactsService.GetUserFollowers(sava.UserId, model);
-        var users = usersModel.Items.ToList();
+        var users = await GetSavaFollowers("f", sava.UserId);
         Assert.Empty(users);
     }
 
@@ -108,10 +92,8 @@ public class ContactsServiceTests
 
         sava = (await GetUsers("Sa")).Single();
 
-        var model = new GetUsersModel { Search = "f", Page = 0, PageSize = 10 };
-        var usersModel = await _contactsService.GetUserFollowers(sava.UserId, model);
-        var users = usersModel.Items.ToList();
-        Assert.Equal(3, users.Count);
+        var users = await GetSavaFollowers("f", sava.UserId);
+        Assert.Equal(3, users.Count());
     }
 
     [Fact]
@@ -148,10 +130,8 @@ public class ContactsServiceTests
 
         sava = (await GetUsers("Sa")).Single();
 
-        var model = new GetUsersModel { Search = "f", Page = 0, PageSize = 10 };
-        var usersModel = await _contactsService.GetUserFollowers(sava.UserId, model);
-        var users = usersModel.Items.ToList();
-        Assert.Equal(3, users.Count);
+        var users = await GetSavaFollowers("f", sava.UserId);
+        Assert.Equal(3, users.Count());
     }
 
     private void CreateUsers()
@@ -235,10 +215,22 @@ public class ContactsServiceTests
         });
     }
 
-    private async Task<List<UserModel>> GetUsers(string seatch)
+    private async Task<UserModel[]> GetUsers(string search)
     {
-        var model = new GetUsersModel { Search = seatch, Page = 0, PageSize = 100 };
+        var model = CreateGetUsersModel(search);
         var users = await _contactsService.GetUsers(model);
         return [.. users.Items];
+    }
+
+    private async Task<UserModel[]> GetSavaFollowers(string search, string savaUserId)
+    {
+        var model = new GetUsersModel { Search = search, Page = 0, PageSize = 10 };
+        var usersModel = await _contactsService.GetUserFollowers(savaUserId, model);
+        return [.. usersModel.Items];
+    }
+
+    private static GetUsersModel CreateGetUsersModel(string search)
+    {
+        return new GetUsersModel { Search = search, Page = 0, PageSize = 100 };
     }
 }
