@@ -93,30 +93,35 @@ public class FollowersContainer(
 
     public async Task<PagedDataModel<SearchUserEntity>> GetUsers(UserEntity user, GetUsersModel model)
     {
-        return await GetUserFromFirstCharsContext(model, CategoryHelper.GetCategoryCharsCount(user.Category));
+        return await GetUserFromFirstCharsContext(
+            model,
+            (keys) => KeyHelper.CreateKeyByChars(user.UserId, keys),
+            CategoryHelper.GetCategoryCharsCount(user.Category));
     }
 
     private async Task AddUserToLastNameFirstCharCollection(UserEntity user, UserEntity userToAdd)
     {
+        var lastNameNormalized = KeyHelper.CreateKeyByChars(userToAdd.LastName[..1]);
         var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(userToAdd);
-        firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, userToAdd.LastName[..1], _suffix);
-        firstCharSearchUser.FirstChars = userToAdd.LastName[..1];
+        firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, lastNameNormalized, _suffix);
+        firstCharSearchUser.FirstChars = lastNameNormalized;
         await lastNameFirstCharContext.Add(firstCharSearchUser);
     }
 
     private async Task UpdateUserInLastNameFirstCharCollection(UserEntity user, UserEntity userToUpdate)
     {
+        var lastNameNormalized = KeyHelper.CreateKeyByChars(userToUpdate.LastName[..1]);
         var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(userToUpdate);
-        firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, userToUpdate.LastName[..1], _suffix);
-        firstCharSearchUser.FirstChars = userToUpdate.LastName[..1];
+        firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, lastNameNormalized, _suffix);
+        firstCharSearchUser.FirstChars = lastNameNormalized;
         await lastNameFirstCharContext.Update(firstCharSearchUser);
     }
 
     private async Task DeleteUserfromLastNameFirstCharCollection(UserEntity user, UserEntity userToRemove)
     {
-        var partitionKey = KeyHelper.CreateKeyByChars(user.UserId, userToRemove.LastName[..1], _suffix);
-        var key = userToRemove.LastName[..1];
-        await lastNameFirstCharContext.Delete(partitionKey, user.UserId, key);
+        var key = KeyHelper.CreateKeyByChars(userToRemove.LastName[..1]);
+        var partitionKey = KeyHelper.CreateKeyByChars(user.UserId, key, _suffix);
+        await lastNameFirstCharContext.Delete(partitionKey, userToRemove.UserId, key);
     }
 
     private async Task UpdateUserByFirstChar(UserEntity user, UserEntity oldUser, UserEntity newUser)
@@ -138,33 +143,51 @@ public class FollowersContainer(
     private async Task HandleUpgrade(UserEntity user, int oldCharsCount, int newCharsCount)
     {
         var followers = await GetFlatFollowers(user.UserId);
-        foreach (var follower in followers)
-        {
-            var followersByChars = KeyHelper.GetKeysByFirstChars(
-                follower,
-                Math.Min(newCharsCount, oldCharsCount),
-                Math.Abs(newCharsCount - oldCharsCount));
-            foreach (var followerByChars in followersByChars)
+        var users = followers.
+            Select(follower =>
             {
-                var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(follower);
-                firstCharSearchUser.FirstChars = followerByChars;
-                firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, followerByChars);
-                await FirstCharsContext.Add(firstCharSearchUser);
-            }
-        }
+                var followersByChars = KeyHelper.GetKeysByFirstChars(
+                    follower,
+                    oldCharsCount,
+                    newCharsCount);
+                return followersByChars.Select(followerByChars =>
+                {
+                    if (oldCharsCount < 0)
+                    {
+                        var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(follower);
+                        firstCharSearchUser.Id = Guid.NewGuid().ToString("N");
+                        firstCharSearchUser.FirstChars = followerByChars;
+                        firstCharSearchUser.PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, followerByChars);
+                        return firstCharSearchUser;
+                    }
+
+                    return new FirstCharSearchUserEntity
+                    {
+                        UserId = follower.UserId,
+                        Category = follower.Category,
+                        FirstName = follower.FirstName,
+                        LastName = follower.LastName,
+                        Rating = follower.Rating,
+                        Id = Guid.NewGuid().ToString("N"),
+                        FirstChars = followerByChars,
+                        PartitionKey = KeyHelper.CreateKeyByChars(user.UserId, followerByChars),
+                    };
+                });
+            }).SelectMany(users => users);
+        ArgumentNullException.ThrowIfNull(nameof(users));
+        await FirstCharsContext.Add([..users]);
     }
 
     private async Task HandleDowngrade(UserEntity user, int newCharsCount)
     {
         var firstCharsValues = await firstCharMapContext.Get(user.UserId, FirstCharsEntityType.FirstChars);
         var firstCharsToRemove = firstCharsValues.Where(firstCharsValue => firstCharsValue.FirstChars.Length > newCharsCount);
-        await Task.WhenAll(
-            firstCharsToRemove
-                .Select(firstCharToRemove =>
-                {
-                    var partitionKey = KeyHelper.CreateKeyByChars(user.UserId, firstCharToRemove.FirstChars);
-                    return FirstCharsContext.Delete(partitionKey, firstCharToRemove.FirstChars);
-                }));
+
+        var @params = firstCharsToRemove.Select(firstCharToRemove => (
+            KeyHelper.CreateKeyByChars(user.UserId, firstCharToRemove.FirstChars),
+            firstCharToRemove.FirstChars
+        )).ToArray();
+        await FirstCharsContext.Delete(@params);
     }
 
     private async Task UpdateFirstCharsContext(
@@ -172,20 +195,20 @@ public class FollowersContainer(
         UserEntity userToUpdate,
         bool increase)
     {
-        var lastNameFirstChar = userToUpdate.LastName[..1];
-        var firstCharEntity = await firstCharMapContext.TryGet(user.Id, lastNameFirstChar, FirstCharsEntityType.LastName);
+        var lastNameFirstChar = KeyHelper.CreateKeyByChars(userToUpdate.LastName[..1]);
+        var firstCharEntity = await firstCharMapContext.TryGet(user.UserId, lastNameFirstChar, FirstCharsEntityType.LastName);
         if (firstCharEntity == null)
         {
             if (!increase)
             {
-                throw new FirstCharEntityNotFoundException(user.Id, lastNameFirstChar, FirstCharsEntityType.LastName);
+                throw new FirstCharEntityNotFoundException(user.UserId, lastNameFirstChar, FirstCharsEntityType.LastName);
             }
             else
             {
                 await firstCharMapContext.Add(new FirstCharEntity
                 {
                     Id = Guid.NewGuid().ToString("N"),
-                    UserId = user.Id,
+                    UserId = user.UserId,
                     EntityType = FirstCharsEntityType.LastName,
                     FirstChars = lastNameFirstChar,
                     FollowersCount = 1,
@@ -198,7 +221,7 @@ public class FollowersContainer(
             firstCharEntity.FollowersCount += delta;
             if (firstCharEntity.FollowersCount == 0)
             {
-                await firstCharMapContext.Delete(user.Id, lastNameFirstChar, FirstCharsEntityType.LastName);
+                await firstCharMapContext.Delete(user.UserId, lastNameFirstChar, FirstCharsEntityType.LastName);
             }
             else
             {

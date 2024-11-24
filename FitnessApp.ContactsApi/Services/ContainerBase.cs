@@ -21,37 +21,35 @@ public abstract class ContainerBase
         FirstCharsContext = firstCharsContext;
     }
 
-    protected async Task AddUserToFirstCharsContext(
+    protected Task AddUserToFirstCharsContext(
         UserEntity userToAdd,
         Func<string, string> createPartitionKey,
         int charsCount)
     {
         var firstCharsKeys = KeyHelper.GetKeysByFirstChars(userToAdd, 0, charsCount);
-        var addTasks = firstCharsKeys.Select(firstCharsKey =>
+        var users = firstCharsKeys.Select(firstCharsKey =>
         {
             var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(userToAdd);
             firstCharSearchUser.Id = Guid.NewGuid().ToString("N");
             firstCharSearchUser.FirstChars = firstCharsKey;
             firstCharSearchUser.PartitionKey = createPartitionKey(firstCharsKey);
-            return FirstCharsContext.Add(firstCharSearchUser);
+            return firstCharSearchUser;
         });
-        await Task.WhenAll(addTasks);
+        return FirstCharsContext.Add([..users]);
     }
 
-    protected async Task RemoveUserFromFirstCharsContext(
+    protected Task RemoveUserFromFirstCharsContext(
         UserEntity userToRemove,
         Func<string, string> createPartitionKey,
         int charsCount)
     {
         var firstCharsKeys = KeyHelper.GetKeysByFirstChars(userToRemove, 0, charsCount);
-        var deleteTasks = firstCharsKeys.Select(firstCharsKey =>
-        {
-            return FirstCharsContext.Delete(
-                createPartitionKey(firstCharsKey),
-                userToRemove.UserId,
-                firstCharsKey);
-        });
-        await Task.WhenAll(deleteTasks);
+        var @params = firstCharsKeys.Select(firstCharsKey => (
+            createPartitionKey(firstCharsKey),
+            userToRemove.UserId,
+            firstCharsKey
+        )).ToArray();
+        return FirstCharsContext.Delete(@params);
     }
 
     protected async Task UpdateUserInFirstCharsContext(
@@ -62,12 +60,14 @@ public abstract class ContainerBase
         var keysToUpdate = KeyHelper.GetKeysByFirstChars(user, 0, charsCount);
         var updateTasks = keysToUpdate.Select(keyToUpdate =>
         {
-            var firstCharSearchUserEntityTask = FirstCharsContext.Get(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate);
-            return firstCharSearchUserEntityTask.ContinueWith((firstCharSearchUserEntity) =>
+            var getFirstCharSearchUserEntityTask = FirstCharsContext.Get(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate);
+            return getFirstCharSearchUserEntityTask.ContinueWith((firstCharSearchUserEntityTask) =>
             {
-                firstCharSearchUserEntity.Result.PartitionKey = createPartitionKey(keyToUpdate);
-                firstCharSearchUserEntity.Result.FirstChars = keyToUpdate;
-                return FirstCharsContext.Update(firstCharSearchUserEntity.Result);
+                var firstCharSearchUserEntity = firstCharSearchUserEntityTask.Result;
+                firstCharSearchUserEntity.Category = user.Category;
+                firstCharSearchUserEntity.PartitionKey = createPartitionKey(keyToUpdate);
+                firstCharSearchUserEntity.FirstChars = keyToUpdate;
+                return FirstCharsContext.Update(firstCharSearchUserEntity);
             });
         });
         await Task.WhenAll(updateTasks);
@@ -80,28 +80,33 @@ public abstract class ContainerBase
         int charsCount)
     {
         var (KeysToRemove, KeysToAdd) = KeyHelper.GetUnMatchedKeys(oldUser, newUser, charsCount);
-        var deleteTasks = KeysToRemove.Select(keyToRemove =>
-        {
-            var partitionKey = createPartitionKey(keyToRemove);
-            return FirstCharsContext.Delete(partitionKey, oldUser.UserId, keyToRemove);
-        });
-        await Task.WhenAll(deleteTasks);
+        var @params = KeysToRemove.Select(keyToRemove => (
+            createPartitionKey(keyToRemove),
+            oldUser.UserId,
+            keyToRemove
+        )).ToArray();
+        var deleteUsersTask = FirstCharsContext.Delete(@params);
 
         var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(newUser);
-        var addTasks = KeysToAdd.Select(keyToAdd =>
+        var users = KeysToAdd.Select(keyToAdd =>
         {
             var partitionKey = createPartitionKey(keyToAdd);
             firstCharSearchUser.PartitionKey = partitionKey;
             firstCharSearchUser.FirstChars = keyToAdd;
-            return FirstCharsContext.Add(firstCharSearchUser);
+            return firstCharSearchUser;
         });
-        await Task.WhenAll(addTasks);
+        var addUsersTask = FirstCharsContext.Add([.. users]);
+
+        await Task.WhenAll(deleteUsersTask, addUsersTask);
     }
 
-    protected async Task<PagedDataModel<SearchUserEntity>> GetUserFromFirstCharsContext(GetUsersModel model, int charsCount)
+    protected async Task<PagedDataModel<SearchUserEntity>> GetUserFromFirstCharsContext(
+        GetUsersModel model,
+        Func<string, string> createPartitionKey,
+        int charsCount)
     {
-        var chars = KeyHelper.GetSubstring(model.Search, 0, charsCount);
-        var partitionKey = KeyHelper.CreateKeyByChars(chars);
+        var chars = KeyHelper.GetSubstring(model.Search, charsCount);
+        var partitionKey = createPartitionKey(chars);
         var data = await FirstCharsContext.Get(partitionKey, chars, model);
         return new PagedDataModel<SearchUserEntity>
         {

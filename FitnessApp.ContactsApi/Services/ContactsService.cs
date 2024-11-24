@@ -39,20 +39,20 @@ public class ContactsService(
         return storage.AddUser(userEntity);
     }
 
-    public async Task FollowUser(string currentUserId, string userToFollowId)
+    public async Task FollowUser(string userId, string userToFollowId)
     {
-        if (!await storage.IsFollower(currentUserId, userToFollowId))
+        if (!await storage.IsFollower(userId, userToFollowId))
         {
-            var (User1, User2) = await GetUsersPair(currentUserId, userToFollowId);
+            var (User1, User2) = await GetUsersPair(userId, userToFollowId);
             await AddFollower(User1, User2);
         }
     }
 
-    public async Task UnFollowUser(string currentUserId, string userToUnFollowId)
+    public async Task UnFollowUser(string userId, string userToUnFollowId)
     {
-        if (await storage.IsFollower(currentUserId, userToUnFollowId))
+        if (await storage.IsFollower(userToUnFollowId, userId))
         {
-            var (User1, User2) = await GetUsersPair(currentUserId, userToUnFollowId);
+            var (User1, User2) = await GetUsersPair(userId, userToUnFollowId);
             await RemoveFollower(User1, User2);
         }
     }
@@ -70,18 +70,18 @@ public class ContactsService(
         return (getUser1Task.Result, getUser2Task.Result);
     }
 
-    private async Task AddFollower(UserEntity currentUser, UserEntity userToFollow)
+    private async Task AddFollower(UserEntity user, UserEntity userToFollow)
     {
         userToFollow.FollowersCount++;
-        await storage.AddFollower(currentUser, userToFollow.UserId);
+        await storage.AddFollower(user, userToFollow.UserId);
         await storage.UpdateUser(userToFollow);
         await HandleCategoryChange(true, userToFollow);
     }
 
-    private async Task RemoveFollower(UserEntity currentUser, UserEntity userToUnFollow)
+    private async Task RemoveFollower(UserEntity user, UserEntity userToUnFollow)
     {
         userToUnFollow.FollowersCount--;
-        await storage.RemoveFollower(currentUser, userToUnFollow.UserId);
+        await storage.RemoveFollower(user, userToUnFollow.UserId);
         await storage.UpdateUser(userToUnFollow);
         await HandleCategoryChange(false, userToUnFollow);
     }

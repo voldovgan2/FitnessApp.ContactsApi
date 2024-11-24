@@ -20,7 +20,7 @@ public class ContactsRepository(
 {
     public Task<UserEntity> GetUser(string userId)
     {
-        return usersContext.GetUserById(userId);
+        return usersContext.Get(userId);
     }
 
     public Task<PagedDataModel<SearchUserEntity>> GetUsers(GetUsersModel model)
@@ -34,22 +34,22 @@ public class ContactsRepository(
         return await userFollowersContainer.GetUsers(user, model);
     }
 
-    public async Task AddUser(UserEntity userToAdd)
+    public async Task AddUser(UserEntity user)
     {
-        var addUserToContextTask = usersContext.CreateUser(userToAdd);
-        var addUserToGlbalContainerTask = globalContainer.AddUser(userToAdd);
+        var addUserToContextTask = usersContext.Add(user);
+        var addUserToGlbalContainerTask = globalContainer.AddUser(user);
         await Task.WhenAll(addUserToContextTask, addUserToGlbalContainerTask);
     }
 
-    public async Task UpdateUser(UserEntity userToUpdate)
+    public async Task UpdateUser(UserEntity user)
     {
-        var updateUserInContextTask = usersContext.UpdateUser(userToUpdate);
-        var updateUserInGlobalContainerTask = globalContainer.UpdateUser(userToUpdate);
+        var updateUserInContextTask = usersContext.UpdateUser(user);
+        var updateUserInGlobalContainerTask = globalContainer.UpdateUser(user);
         await Task.WhenAll(updateUserInContextTask, updateUserInGlobalContainerTask);
 
-        var followers = await userFollowersContext.Find(userToUpdate.UserId);
+        var followers = await userFollowersContext.Find(user.UserId);
         var users = await Task.WhenAll(followers.Select(following => GetUser(following.FollowerId)));
-        await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, userToUpdate)));
+        await Task.WhenAll(users.Select(u => userFollowersContainer.UpdateUser(u, user)));
     }
 
     public Task<FollowRequestEntity> AddFollowRequest(string thisId, string otherId)
@@ -68,23 +68,23 @@ public class ContactsRepository(
             .Find(userToFollowId, currentUserId) != null;
     }
 
-    public async Task AddFollower(UserEntity whoFollows, string userId)
+    public async Task AddFollower(UserEntity follower, string userId)
     {
-        if (!await IsFollower(whoFollows.UserId, userId))
+        if (!await IsFollower(follower.UserId, userId))
         {
             var user = await GetUser(userId);
-            var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, whoFollows);
+            var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, follower);
             var addUserToFollowersContextTask = userFollowersContext.Add(new MyFollowerEntity
             {
-                Id = Guid.NewGuid().ToString(),
-                UserId = whoFollows.UserId,
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = follower.UserId,
                 FollowerId = user.UserId
             });
             var addUserToFollowingsContextTask = userFollowingsContext.Add(new MeFollowingEntity
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = Guid.NewGuid().ToString("N"),
                 UserId = user.UserId,
-                FollowingId = whoFollows.UserId,
+                FollowingId = follower.UserId,
             });
             await Task.WhenAll(
                 addUserToFollowersContainerTask,
@@ -93,12 +93,13 @@ public class ContactsRepository(
         }
     }
 
-    public async Task RemoveFollower(UserEntity whoUnFollows, string userId)
+    public async Task RemoveFollower(UserEntity follower, string userId)
     {
         var user = await GetUser(userId);
-        var deleteFromFollowersContextTask = userFollowersContext.Delete(user.UserId, whoUnFollows.UserId);
-        var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, whoUnFollows);
-        await Task.WhenAll(deleteFromFollowersContextTask, deleteFromFollowersContainerTask);
+        var deleteFromFollowersContextTask = userFollowersContext.Delete(follower.UserId, user.UserId);
+        var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, follower.UserId);
+        var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, follower);
+        await Task.WhenAll(deleteFromFollowersContextTask, deleteFromFollowingsContextTask, deleteFromFollowersContainerTask);
     }
 
     public async Task UpdateUser(UserEntity oldUser, UserEntity newUser)

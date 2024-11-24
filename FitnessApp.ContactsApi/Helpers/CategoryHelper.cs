@@ -17,11 +17,11 @@ public static class CategoryHelper
     private const int _m100 = 100000000 / _coefitient;
     private static readonly Dictionary<byte, int> _topThreesholds = new()
     {
-        { 1, _k10 + (_k10 * _threeshold / 100) },
-        { 2, _k50 + (_k50 * _threeshold / 100) },
-        { 3, _k500 + (_k500 * _threeshold / 100) },
-        { 4, _m10 + (_m10 * _threeshold / 100) },
-        { 5, _m100 + (_m100 * _threeshold / 100) },
+        { 1, _k10 },
+        { 2, _k50 },
+        { 3, _k500 },
+        { 4, _m10 },
+        { 5, _m100 },
     };
     private static readonly Dictionary<byte, int> _bottomThreesholds = new()
     {
@@ -69,7 +69,7 @@ public static class CategoryHelper
         if (user.Category == 5)
             return false;
         var threeshold = GetItemFomCollection(_topThreesholds, user.Category);
-        return user.FollowersCount > threeshold && IsOutsideDate(user, now);
+        return user.FollowersCount > threeshold;
     }
 
     public static byte GetUpgradeCategory(byte category)

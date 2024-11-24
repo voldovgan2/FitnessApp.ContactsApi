@@ -10,7 +10,7 @@ public static class KeyHelper
 {
     public static string CreateKeyByChars(string chars)
     {
-        return $"{chars}";
+        return GetSubstring(chars, chars.Length);
     }
 
     public static string CreateKeyByChars(string userId, string chars, string suffix = null)
@@ -19,25 +19,24 @@ public static class KeyHelper
         return string.Join("_", values.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
-    public static HashSet<string> GetKeysByFirstChars(UserEntityBase user, int left, int count)
+    public static HashSet<string> GetKeysByFirstChars(UserEntityBase user, int skipLength, int count)
     {
-        if (left < 0 || count < 0)
-            throw new KeyHelperException($"Invalid range: left: {left}, count: {count}");
+        if (skipLength < 0 || count < 0)
+            throw new KeyHelperException($"Invalid range: skipCount: {skipLength}, count: {count}");
         var result = new HashSet<string>();
         for (int k = 1; k <= count; k++)
         {
-            result.Add(GetSubstring(user.FirstName, left, k));
-            result.Add(GetSubstring(user.LastName, left, k));
+            result.Add(GetSubstring(user.FirstName, k));
+            result.Add(GetSubstring(user.LastName, k));
         }
 
+        result.RemoveWhere(item => item.Length <= skipLength);
         return result;
     }
 
-    public static string GetSubstring(string value, int startIndex, int count)
+    public static string GetSubstring(string value, int count)
     {
-        return value
-            .Substring(startIndex, Math.Min(value.Length, count))
-            .ToLower();
+        return value[..Math.Min(value.Length, count)].ToLower();
     }
 
     public static (HashSet<string> KeysToRemove, HashSet<string> KeysToAdd) GetUnMatchedKeys(UserEntityBase user1, UserEntityBase user2, int charsCount)

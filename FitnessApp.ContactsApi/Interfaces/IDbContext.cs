@@ -8,8 +8,8 @@ namespace FitnessApp.ContactsApi.Interfaces;
 
 public interface IUserDbContext
 {
-    Task<UserEntity> GetUserById(string userId);
-    Task<UserEntity> CreateUser(UserEntity entity);
+    Task<UserEntity> Get(string userId);
+    Task<UserEntity> Add(UserEntity entity);
     Task<UserEntity> UpdateUser(UserEntity entity);
     Task<UserEntity> DeleteUser(string userId);
 }
@@ -54,12 +54,17 @@ public interface IFirstCharSearchUserDbContext
         string firstChars,
         GetUsersModel model);
     Task<FirstCharSearchUserEntity> Add(FirstCharSearchUserEntity user);
+    Task Add(FirstCharSearchUserEntity[] users);
     Task<FirstCharSearchUserEntity> Update(FirstCharSearchUserEntity user);
-    Task Delete(string partitionKey, string firstChars);
+    Task Delete((string PartitionKey, string FirstChars)[] @params);
     Task<FirstCharSearchUserEntity> Delete(
         string partitionKey,
         string userId,
         string firstChars);
+    Task Delete((
+        string PartitionKey,
+        string UserId,
+        string FirstChars)[] @params);
 }
 
 public interface IFirstCharDbContext

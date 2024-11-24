@@ -48,6 +48,9 @@ public class GlobalContainer(IMapper mapper, IFirstCharSearchUserDbContext first
 
     public Task<PagedDataModel<SearchUserEntity>> GetUsers(GetUsersModel model)
     {
-        return GetUserFromFirstCharsContext(model, _charsCount);
+        return GetUserFromFirstCharsContext(
+            model,
+            (keys) => keys,
+            _charsCount);
     }
 }
