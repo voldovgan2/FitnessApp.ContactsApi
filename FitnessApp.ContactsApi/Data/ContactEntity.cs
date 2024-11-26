@@ -91,3 +91,23 @@ public enum FirstCharsEntityType
     LastName,
     FirstChars
 }
+
+public class PartitionKeyAndFirstCharFilter(string partitionKey, string firstChars) :
+    IMultipleParamFilter,
+    IPartitionKey,
+    IFirstChars
+{
+    public string PartitionKey { get; set; } = partitionKey;
+    public string FirstChars { get; set; } = firstChars;
+}
+
+public class PartitionKeyAndIdAndFirstCharFilter(string partitionKey, string userId, string firstChars) :
+    IMultipleParamFilter,
+    IPartitionKey,
+    IUserId,
+    IFirstChars
+{
+    public string PartitionKey { get; set; } = partitionKey;
+    public string UserId { get; set; } = userId;
+    public string FirstChars { get; set; } = firstChars;
+}

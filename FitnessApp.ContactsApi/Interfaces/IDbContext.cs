@@ -42,29 +42,15 @@ public interface IFollowerRequestDbContext
 
 public interface IFirstCharSearchUserDbContext
 {
-    Task<FirstCharSearchUserEntity> Get(
-        string partitionKey,
-        string userId,
-        string firstChars);
-    Task<FirstCharSearchUserEntity[]> Get(
-        string partitionKey,
-        string firstChars);
-    Task<PagedDataModel<FirstCharSearchUserEntity>> Get(
-        string partitionKey,
-        string firstChars,
-        GetUsersModel model);
+    Task<FirstCharSearchUserEntity> Get(PartitionKeyAndIdAndFirstCharFilter param);
+    Task<FirstCharSearchUserEntity[]> Get(PartitionKeyAndFirstCharFilter param);
+    Task<PagedDataModel<FirstCharSearchUserEntity>> Get(PartitionKeyAndFirstCharFilter param, GetUsersModel model);
     Task<FirstCharSearchUserEntity> Add(FirstCharSearchUserEntity user);
     Task Add(FirstCharSearchUserEntity[] users);
     Task<FirstCharSearchUserEntity> Update(FirstCharSearchUserEntity user);
-    Task Delete((string PartitionKey, string FirstChars)[] @params);
-    Task<FirstCharSearchUserEntity> Delete(
-        string partitionKey,
-        string userId,
-        string firstChars);
-    Task Delete((
-        string PartitionKey,
-        string UserId,
-        string FirstChars)[] @params);
+    Task Delete(PartitionKeyAndFirstCharFilter[] @params);
+    Task<FirstCharSearchUserEntity> Delete(PartitionKeyAndIdAndFirstCharFilter param);
+    Task Delete(PartitionKeyAndIdAndFirstCharFilter[] @params);
 }
 
 public interface IFirstCharDbContext

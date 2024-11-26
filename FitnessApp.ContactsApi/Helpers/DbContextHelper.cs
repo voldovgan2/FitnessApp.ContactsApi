@@ -1,4 +1,5 @@
-﻿using FitnessApp.Common.Abstractions.Db;
+﻿using System;
+using FitnessApp.Common.Abstractions.Db;
 using FitnessApp.ContactsApi.Data;
 using MongoDB.Driver;
 

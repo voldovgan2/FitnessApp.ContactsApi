@@ -205,41 +205,38 @@ public class FirstCharSearchUserDbContext(IMongoClient mongoClient, IOptionsSnap
     DbContextBase<FirstCharSearchUserEntity>(mongoClient, snapshot.Get("FirstCharSearchUser")),
     IFirstCharSearchUserDbContext
 {
-    public async Task<FirstCharSearchUserEntity> Get(
-        string partitionKey,
-        string userId,
-        string firstChars)
+    public async Task<FirstCharSearchUserEntity> Get(PartitionKeyAndIdAndFirstCharFilter param)
     {
         var result = await Common.Helpers.DbContextHelper.FilterCollection(
             Collection,
-            CreateGetByPartitionAndIdAndFirstCharsFiter(partitionKey, userId, firstChars));
-        return result.FirstOrDefault() ?? throw new FirstCharSearchUserNotFoundException(partitionKey, userId, firstChars);
+            CreateGetByPartitionAndIdAndFirstCharsFiter(param));
+        return
+            result.FirstOrDefault() ??
+            throw new FirstCharSearchUserNotFoundException(
+                param.PartitionKey,
+                param.UserId,
+                param.FirstChars);
     }
 
-    public Task<FirstCharSearchUserEntity[]> Get(
-        string partitionKey,
-        string firstChars)
+    public Task<FirstCharSearchUserEntity[]> Get(PartitionKeyAndFirstCharFilter param)
     {
         return Common.Helpers.DbContextHelper.FilterCollection(
             Collection,
-            CreateGetByPartitionAndFirstCharsFiter(partitionKey, firstChars));
+            CreateGetByPartitionAndFirstCharsFiter(param));
     }
 
-    public Task<PagedDataModel<FirstCharSearchUserEntity>> Get(
-        string partitionKey,
-        string firstChars,
-        GetUsersModel model)
+    public Task<PagedDataModel<FirstCharSearchUserEntity>> Get(PartitionKeyAndFirstCharFilter param, GetUsersModel model)
     {
         return Common.Helpers.DbContextHelper.GetPagedCollection(
             Collection,
-            CreateGetByPartitionAndFirstCharsFiter(partitionKey, firstChars),
+            CreateGetByPartitionAndFirstCharsFiter(param),
             model);
     }
 
     public async Task<FirstCharSearchUserEntity> Add(FirstCharSearchUserEntity user)
     {
         await Collection.InsertOneAsync(user);
-        return await Get(user.PartitionKey, user.UserId, user.FirstChars);
+        return await Get(new PartitionKeyAndIdAndFirstCharFilter(user.PartitionKey, user.UserId, user.FirstChars));
     }
 
     public Task Add(FirstCharSearchUserEntity[] users)
@@ -255,96 +252,50 @@ public class FirstCharSearchUserDbContext(IMongoClient mongoClient, IOptionsSnap
 
     public async Task<FirstCharSearchUserEntity> Update(FirstCharSearchUserEntity user)
     {
-        await Collection.ReplaceOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(user.PartitionKey, user.UserId, user.FirstChars), user);
-        return await Get(user.PartitionKey, user.UserId, user.FirstChars);
+        var param = new PartitionKeyAndIdAndFirstCharFilter(user.PartitionKey, user.UserId, user.FirstChars);
+        await Collection.ReplaceOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(param), user);
+        return await Get(param);
     }
 
-    public async Task Delete((string PartitionKey, string FirstChars)[] @params)
+    public async Task Delete(PartitionKeyAndFirstCharFilter[] @params)
     {
-        await Collection.DeleteManyAsync(CreateGetByMultiplePartitionAndFirstCharsFiter(@params));
+        await Collection.DeleteManyAsync(Common.Helpers.DbContextHelper.CreateGetByArrayParamsFiter(@params, CreateGetByPartitionAndFirstCharsFiter));
     }
 
-    public async Task<FirstCharSearchUserEntity> Delete(
-        string partitionKey,
-        string userId,
-        string firstChars)
+    public async Task<FirstCharSearchUserEntity> Delete(PartitionKeyAndIdAndFirstCharFilter param)
     {
-        var deleted = await Get(partitionKey, userId, firstChars);
-        var deleteResult = await Collection.DeleteOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(partitionKey, userId, firstChars));
+        var deleted = await Get(param);
+        var deleteResult = await Collection.DeleteOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(param));
         return Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? deleted
-            : throw new FirstCharSearchUserNotFoundException(partitionKey, userId, firstChars);
+            : throw new FirstCharSearchUserNotFoundException(
+                param.PartitionKey,
+                param.UserId,
+                param.FirstChars);
     }
 
-    public async Task Delete((
-        string PartitionKey,
-        string UserId,
-        string FirstChars)[] @params)
+    public async Task Delete(PartitionKeyAndIdAndFirstCharFilter[] @params)
     {
-        await Collection.DeleteManyAsync(CreateGetByMultiplePartitionAndIdAndFirstCharsFiter(@params));
+        await Collection.DeleteManyAsync(Common.Helpers.DbContextHelper.CreateGetByArrayParamsFiter(@params, CreateGetByPartitionAndIdAndFirstCharsFiter));
     }
 
-    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByMultiplePartitionAndFirstCharsFiter((string PartitionKey, string FirstChars)[] @params)
-    {
-        var filter = CreateGetByPartitionAndFirstCharsFiter(@params[0].PartitionKey, @params[0].FirstChars);
-        for (int k = 1; k < @params.Length; k++)
-        {
-            filter = Builders<FirstCharSearchUserEntity>
-                .Filter
-                .Or(
-                    filter,
-                    CreateGetByPartitionAndFirstCharsFiter(
-                        @params[k].PartitionKey,
-                        @params[k].FirstChars));
-        }
-
-        return filter;
-    }
-
-    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByPartitionAndFirstCharsFiter(string partitionKey, string firstChars)
+    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByPartitionAndFirstCharsFiter(PartitionKeyAndFirstCharFilter param)
     {
         return Builders<FirstCharSearchUserEntity>
             .Filter
             .And(
-                Common.Helpers.DbContextHelper.CreateGetByPartitionKeyFiter<FirstCharSearchUserEntity>(partitionKey),
-                DbContextHelper.CreateGetByFirstCharsFiter<FirstCharSearchUserEntity>(firstChars));
+                Common.Helpers.DbContextHelper.CreateGetByPartitionKeyFiter<FirstCharSearchUserEntity>(param.PartitionKey),
+                DbContextHelper.CreateGetByFirstCharsFiter<FirstCharSearchUserEntity>(param.FirstChars));
     }
 
-    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByPartitionAndIdAndFirstCharsFiter(
-        string partitionKey,
-        string id,
-        string firstChars)
+    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByPartitionAndIdAndFirstCharsFiter(PartitionKeyAndIdAndFirstCharFilter param)
     {
         return Builders<FirstCharSearchUserEntity>
             .Filter
             .And(
-                Common.Helpers.DbContextHelper.CreateGetByPartitionKeyFiter<FirstCharSearchUserEntity>(partitionKey),
-                DbContextHelper.CreateGetByUserIdFiter<FirstCharSearchUserEntity>(id),
-                DbContextHelper.CreateGetByFirstCharsFiter<FirstCharSearchUserEntity>(firstChars));
-    }
-
-    private static FilterDefinition<FirstCharSearchUserEntity> CreateGetByMultiplePartitionAndIdAndFirstCharsFiter((
-        string PartitionKey,
-        string Id,
-        string FirstChars)[] @params)
-    {
-        var filter = CreateGetByPartitionAndIdAndFirstCharsFiter(
-            @params[0].PartitionKey,
-            @params[0].Id,
-            @params[0].FirstChars);
-        for (int k = 1; k < @params.Length; k++)
-        {
-            filter = Builders<FirstCharSearchUserEntity>
-                .Filter
-                .Or(
-                    filter,
-                    CreateGetByPartitionAndIdAndFirstCharsFiter(
-                        @params[k].PartitionKey,
-                        @params[k].Id,
-                        @params[k].FirstChars));
-        }
-
-        return filter;
+                Common.Helpers.DbContextHelper.CreateGetByPartitionKeyFiter<FirstCharSearchUserEntity>(param.PartitionKey),
+                DbContextHelper.CreateGetByUserIdFiter<FirstCharSearchUserEntity>(param.UserId),
+                DbContextHelper.CreateGetByFirstCharsFiter<FirstCharSearchUserEntity>(param.FirstChars));
     }
 }
 
@@ -389,7 +340,7 @@ public class FirstCharDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
     public async Task<FirstCharEntity> Delete(string userId, string firstChars, FirstCharsEntityType entityType)
     {
         var deleted = await Get(userId, firstChars, entityType) ?? throw new FirstCharEntityNotFoundException(userId, firstChars, entityType);
-        var deleteResult = await Collection.DeleteOneAsync(DbContextHelper.CreateGetByUserIdFiter<FirstCharEntity>(userId));
+        var deleteResult = await Collection.DeleteOneAsync(CreateGetByIdAndEntityTypeAndFirstCharsFiter(userId, entityType, firstChars));
         return Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? deleted
             : throw new FirstCharEntityNotFoundException(userId, firstChars, entityType);

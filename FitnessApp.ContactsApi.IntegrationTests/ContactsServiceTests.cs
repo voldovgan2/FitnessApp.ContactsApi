@@ -36,8 +36,7 @@ public class ContactsServiceTests
     [Fact]
     public async Task HfedFollowsSava_SavaHasHfedsAsFollowers()
     {
-        await CreateUser("Igor", "Sava");
-        await CreateUser("Fedir", "Nedashkovskiy");
+        await CreateSavaAndFed();
         var sava = (await GetUsers("Sa")).Single();
         var fehin = (await GetUsers("Ne")).Single();
         await _contactsService.FollowUser(fehin.UserId, sava.UserId);
@@ -49,8 +48,7 @@ public class ContactsServiceTests
     [Fact]
     public async Task HfedUnFollowsSava_SavaNotHasHfedsAsFollowers()
     {
-        await CreateUser("Igor", "Sava");
-        await CreateUser("Fedir", "Nedashkovskiy");
+        await CreateSavaAndFed();
         var sava = (await GetUsers("Sa")).Single();
         var fehin = (await GetUsers("Ne")).Single();
         await _contactsService.FollowUser(fehin.UserId, sava.UserId);
@@ -60,7 +58,7 @@ public class ContactsServiceTests
     }
 
     [Fact]
-    public async Task AfterHfedFollowsSava_SavaUpgradesCategory()
+    public async Task AfterPehiniovaFollowsSava_SavaUpgradesCategory()
     {
         CreateUsers();
         var sava = (await GetUsers("Sa")).Single();
@@ -203,6 +201,11 @@ public class ContactsServiceTests
             categoryChangeHandler,
             mapper,
             dateTimeService);
+    }
+
+    private async Task CreateSavaAndFed()
+    {
+        await Task.WhenAll(CreateUser("Igor", "Sava"), CreateUser("Fedir", "Nedashkovskiy"));
     }
 
     private async Task CreateUser(string firstName, string lastName)

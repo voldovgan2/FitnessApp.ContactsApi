@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -121,7 +122,7 @@ public class FollowersContainer(
     {
         var key = KeyHelper.CreateKeyByChars(userToRemove.LastName[..1]);
         var partitionKey = KeyHelper.CreateKeyByChars(user.UserId, key, _suffix);
-        await lastNameFirstCharContext.Delete(partitionKey, userToRemove.UserId, key);
+        await lastNameFirstCharContext.Delete(new PartitionKeyAndIdAndFirstCharFilter(partitionKey, userToRemove.UserId, key));
     }
 
     private async Task UpdateUserByFirstChar(UserEntity user, UserEntity oldUser, UserEntity newUser)
@@ -180,14 +181,11 @@ public class FollowersContainer(
 
     private async Task HandleDowngrade(UserEntity user, int newCharsCount)
     {
-        var firstCharsValues = await firstCharMapContext.Get(user.UserId, FirstCharsEntityType.FirstChars);
-        var firstCharsToRemove = firstCharsValues.Where(firstCharsValue => firstCharsValue.FirstChars.Length > newCharsCount);
-
-        var @params = firstCharsToRemove.Select(firstCharToRemove => (
-            KeyHelper.CreateKeyByChars(user.UserId, firstCharToRemove.FirstChars),
-            firstCharToRemove.FirstChars
-        )).ToArray();
-        await FirstCharsContext.Delete(@params);
+        var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
+            FirstCharsEntityType.FirstChars,
+            firstCharsValue => firstCharsValue.FirstChars.Length > newCharsCount,
+            user.UserId);
+        await FirstCharsContext.Delete([..@params]);
     }
 
     private async Task UpdateFirstCharsContext(
@@ -232,17 +230,28 @@ public class FollowersContainer(
 
     private async Task<SearchUserEntity[]> GetFlatFollowers(string userId)
     {
-        var firstCharsValues = await firstCharMapContext.Get(userId, FirstCharsEntityType.LastName);
+        var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
+            FirstCharsEntityType.LastName,
+            o => true,
+            userId);
         return [
             .. (
-                    await Task.WhenAll(
-                        firstCharsValues
-                            .Select(firstCharsValue =>
-                            {
-                                var partitionKey = KeyHelper.CreateKeyByChars(userId, firstCharsValue.FirstChars);
-                                return lastNameFirstCharContext.Get(partitionKey, firstCharsValue.FirstChars);
-                            }))
+                    await Task.WhenAll(@params.Select(lastNameFirstCharContext.Get))
                 ).SelectMany(items => items)
         ];
+    }
+
+    private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
+        FirstCharsEntityType entityType,
+        Func<FirstCharEntity, bool> predicate,
+        string userId)
+    {
+        var firstCharsValues = await firstCharMapContext.Get(userId, entityType);
+        var filtered = firstCharsValues.Where(item => predicate(item));
+        return filtered.Select(firstCharsValue =>
+        {
+            var partitionKey = KeyHelper.CreateKeyByChars(userId, firstCharsValue.FirstChars);
+            return new PartitionKeyAndFirstCharFilter(partitionKey, firstCharsValue.FirstChars);
+        });
     }
 }

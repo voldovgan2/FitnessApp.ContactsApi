@@ -44,12 +44,12 @@ public abstract class ContainerBase
         int charsCount)
     {
         var firstCharsKeys = KeyHelper.GetKeysByFirstChars(userToRemove, 0, charsCount);
-        var @params = firstCharsKeys.Select(firstCharsKey => (
+        var @params = firstCharsKeys.Select(firstCharsKey => new PartitionKeyAndIdAndFirstCharFilter(
             createPartitionKey(firstCharsKey),
             userToRemove.UserId,
             firstCharsKey
-        )).ToArray();
-        return FirstCharsContext.Delete(@params);
+        ));
+        return FirstCharsContext.Delete([..@params]);
     }
 
     protected async Task UpdateUserInFirstCharsContext(
@@ -60,7 +60,7 @@ public abstract class ContainerBase
         var keysToUpdate = KeyHelper.GetKeysByFirstChars(user, 0, charsCount);
         var updateTasks = keysToUpdate.Select(keyToUpdate =>
         {
-            var getFirstCharSearchUserEntityTask = FirstCharsContext.Get(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate);
+            var getFirstCharSearchUserEntityTask = FirstCharsContext.Get(new PartitionKeyAndIdAndFirstCharFilter(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate));
             return getFirstCharSearchUserEntityTask.ContinueWith((firstCharSearchUserEntityTask) =>
             {
                 var firstCharSearchUserEntity = firstCharSearchUserEntityTask.Result;
@@ -80,12 +80,12 @@ public abstract class ContainerBase
         int charsCount)
     {
         var (KeysToRemove, KeysToAdd) = KeyHelper.GetUnMatchedKeys(oldUser, newUser, charsCount);
-        var @params = KeysToRemove.Select(keyToRemove => (
+        var @params = KeysToRemove.Select(keyToRemove => new PartitionKeyAndIdAndFirstCharFilter(
             createPartitionKey(keyToRemove),
             oldUser.UserId,
             keyToRemove
-        )).ToArray();
-        var deleteUsersTask = FirstCharsContext.Delete(@params);
+        ));
+        var deleteUsersTask = FirstCharsContext.Delete([..@params]);
 
         var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(newUser);
         var users = KeysToAdd.Select(keyToAdd =>
@@ -107,7 +107,7 @@ public abstract class ContainerBase
     {
         var chars = KeyHelper.GetSubstring(model.Search, charsCount);
         var partitionKey = createPartitionKey(chars);
-        var data = await FirstCharsContext.Get(partitionKey, chars, model);
+        var data = await FirstCharsContext.Get(new PartitionKeyAndFirstCharFilter(partitionKey, chars), model);
         return new PagedDataModel<SearchUserEntity>
         {
             Page = data.Page,

@@ -7,14 +7,15 @@ namespace FitnessApp.ContactsApi.Helpers;
 
 public static class CategoryHelper
 {
-    private const int _coefitient = 1000;
+    private const int _followersCoefitient = 1000;
+    private const int _dateCoefitient = 0;
     private const int _threeshold = 10;
     private const int _threesholdDays = 7;
-    private const int _k10 = 10000 / _coefitient;
-    private const int _k50 = 50000 / _coefitient;
-    private const int _k500 = 500000 / _coefitient;
-    private const int _m10 = 10000000 / _coefitient;
-    private const int _m100 = 100000000 / _coefitient;
+    private const int _k10 = 10000 / _followersCoefitient;
+    private const int _k50 = 50000 / _followersCoefitient;
+    private const int _k500 = 500000 / _followersCoefitient;
+    private const int _m10 = 10000000 / _followersCoefitient;
+    private const int _m100 = 100000000 / _followersCoefitient;
     private static readonly Dictionary<byte, int> _topThreesholds = new()
     {
         { 1, _k10 },
@@ -96,6 +97,6 @@ public static class CategoryHelper
 
     private static bool IsOutsideDate(UserEntity user, DateTime now)
     {
-        return user.CategoryDate < now.AddDays(-_threesholdDays);
+        return user.CategoryDate < now.AddDays(-_threesholdDays * _dateCoefitient);
     }
 }
