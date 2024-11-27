@@ -291,6 +291,15 @@ public class FollowersContainer(
         }
     }
 
+    /// <summary>
+    /// Update context map if we add or remove user to/from context. We need it for both FirstChar and LastName.
+    /// </summary>
+    /// <param name="user">In which user context to update context map.</param>
+    /// <param name="firstCharsEntityType">FirstChar or LastName.</param>
+    /// <param name="lastNameFirstChar">First char value.</param>
+    /// <param name="increase">Increase or decrease followers count.</param>
+    /// <returns>Task.</returns>
+    /// <exception cref="FirstCharEntityNotFoundException">If not found.</exception>
     private async Task UpdateFirstCharsContext(
         UserEntity user,
         FirstCharsEntityType firstCharsEntityType,
@@ -331,6 +340,11 @@ public class FollowersContainer(
         }
     }
 
+    /// <summary>
+    /// Gets all users followers by using FirstChar suffix.
+    /// </summary>
+    /// <param name="userId">In which user context to get followers.</param>
+    /// <returns>array of followers.</returns>
     private async Task<FirstCharSearchUserEntity[]> GetFlatFollowers(string userId)
     {
         var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
@@ -344,6 +358,13 @@ public class FollowersContainer(
         ];
     }
 
+    /// <summary>
+    /// Create list of array params.
+    /// </summary>
+    /// <param name="entityType">Entity type.</param>
+    /// <param name="predicate">We may filter some first chars from result(e.g for downgrade just too big first chars).</param>
+    /// <param name="userId">In which user context to build params, used to get all chars from context map.</param>
+    /// <returns>Array of params.</returns>
     private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
         FirstCharsEntityType entityType,
         Func<FirstCharEntity, bool> predicate,
