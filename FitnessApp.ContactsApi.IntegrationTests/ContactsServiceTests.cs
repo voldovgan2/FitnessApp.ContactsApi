@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FitnessApp.Common.Abstractions.Db;
+using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Models;
 using FitnessApp.ContactsApi.Services;
 using Microsoft.Extensions.Caching.Distributed;
@@ -31,6 +32,19 @@ public class ContactsServiceTests
     public ContactsServiceTests()
     {
         _contactsService = CreateContactsService();
+        SearchUserEntity[] followers = [
+            new FirstCharSearchUserEntity
+            {
+                Id = "Id",
+                FirstName = "FirstName",
+                LastName = "LastName",
+                Category = 1,
+                PartitionKey = "Id_F",
+                Rating = 1,
+                UserId = "UserId",
+            },
+        ];
+        Assert.NotNull(followers);
     }
 
     [Fact]
@@ -163,11 +177,6 @@ public class ContactsServiceTests
     private static ContactsService CreateContactsService()
     {
         var dateTimeService = new DateTimeService();
-        var mapperConfiguration = new MapperConfiguration(delegate(IMapperConfigurationExpression mc)
-        {
-            mc.AddProfile(new MappingProfile());
-        });
-        var mapper = mapperConfiguration.CreateMapper();
         var optionsSnapshot = new OptionsSnapshot();
         var client = new MongoClient("mongodb://127.0.0.1:27017");
         var userDbContext = new UserDbContext(client, optionsSnapshot);
@@ -181,11 +190,10 @@ public class ContactsServiceTests
         var firstCharsContext = new FirstCharSearchUserDbContext(client, optionsSnapshot);
         var firstCharMapContext = new FirstCharDbContext(client, optionsSnapshot);
         var followersContainer = new FollowersContainer(
-            mapper,
             lastNameFirstCharContext,
             firstCharsContext,
             firstCharMapContext);
-        var globalContainer = new GlobalContainer(mapper, firstCharsContext);
+        var globalContainer = new GlobalContainer(firstCharsContext);
         var contactsRepository = new ContactsRepository(
             userDbContext,
             followerDbContext,
@@ -199,7 +207,6 @@ public class ContactsServiceTests
         return new ContactsService(
             storage,
             categoryChangeHandler,
-            mapper,
             dateTimeService);
     }
 

@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using AutoMapper;
 using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Interfaces;
@@ -7,8 +6,8 @@ using FitnessApp.ContactsApi.Models;
 
 namespace FitnessApp.ContactsApi.Services;
 
-public class GlobalContainer(IMapper mapper, IFirstCharSearchUserDbContext firstCharsContext) :
-    ContainerBase(mapper, firstCharsContext),
+public class GlobalContainer(IFirstCharSearchUserDbContext firstCharsContext) :
+    ContainerBase(firstCharsContext),
     IGlobalContainer
 {
     private const int _charsCount = 2;

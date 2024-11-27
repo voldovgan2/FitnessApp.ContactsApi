@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using AutoMapper;
 using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Events;
@@ -13,29 +12,27 @@ namespace FitnessApp.ContactsApi.Services;
 public class ContactsService(
     IStorage storage,
     ICategoryChangeHandler categoryChangeHandler,
-    IMapper mapper,
     IDateTimeService dateTimeService) :
     IContactsService
 {
     public async Task<PagedDataModel<UserModel>> GetUsers(GetUsersModel model)
     {
         var data = await storage.GetUsers(model);
-        return mapper.Map<PagedDataModel<UserModel>>(data);
+        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(data);
     }
 
     public async Task<PagedDataModel<UserModel>> GetUserFollowers(string userId, GetUsersModel model)
     {
         var data = await storage.GetUserFollowers(userId, model);
-        return mapper.Map<PagedDataModel<UserModel>>(data);
+        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(data);
     }
 
     public Task AddUser(UserModel user)
     {
-        var userEntity = mapper.Map<UserEntity>(user);
+        var userEntity = ConvertHelper.UserEntityFromUserModel(user);
         userEntity.Category = 1;
         userEntity.CategoryDate = dateTimeService.Now;
         userEntity.Rating = 1;
-        userEntity.Id = Guid.NewGuid().ToString("N");
         return storage.AddUser(userEntity);
     }
 
@@ -59,7 +56,7 @@ public class ContactsService(
 
     public Task UpdateUser(UserModel oldUser, UserModel newUser)
     {
-        return storage.UpdateUser(mapper.Map<UserEntity>(oldUser), mapper.Map<UserEntity>(newUser));
+        return storage.UpdateUser(ConvertHelper.UserEntityFromUserModel(oldUser), ConvertHelper.UserEntityFromUserModel(newUser));
     }
 
     private async Task<(UserEntity User1, UserEntity User2)> GetUsersPair(string id1, string id2)

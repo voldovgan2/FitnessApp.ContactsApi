@@ -218,6 +218,13 @@ public class FirstCharSearchUserDbContext(IMongoClient mongoClient, IOptionsSnap
                 param.FirstChars);
     }
 
+    public async Task<FirstCharSearchUserEntity[]> Get(PartitionKeyAndIdAndFirstCharFilter[] @params)
+    {
+        return await Common.Helpers.DbContextHelper.FilterCollection(
+            Collection,
+            Common.Helpers.DbContextHelper.CreateGetByArrayParamsFiter(@params, CreateGetByPartitionAndIdAndFirstCharsFiter));
+    }
+
     public Task<FirstCharSearchUserEntity[]> Get(PartitionKeyAndFirstCharFilter param)
     {
         return Common.Helpers.DbContextHelper.FilterCollection(
@@ -241,12 +248,6 @@ public class FirstCharSearchUserDbContext(IMongoClient mongoClient, IOptionsSnap
 
     public Task Add(FirstCharSearchUserEntity[] users)
     {
-        HashSet<string> ids = new HashSet<string>();
-        foreach (var item in users)
-        {
-            ids.Add(item.Id);
-        }
-
         return Collection.InsertManyAsync(users);
     }
 
@@ -255,6 +256,15 @@ public class FirstCharSearchUserDbContext(IMongoClient mongoClient, IOptionsSnap
         var param = new PartitionKeyAndIdAndFirstCharFilter(user.PartitionKey, user.UserId, user.FirstChars);
         await Collection.ReplaceOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(param), user);
         return await Get(param);
+    }
+
+    public async Task Replace(FirstCharSearchUserEntity[] users)
+    {
+        foreach (var user in users)
+        {
+            var param = new PartitionKeyAndIdAndFirstCharFilter(user.PartitionKey, user.UserId, user.FirstChars);
+            await Collection.ReplaceOneAsync(CreateGetByPartitionAndIdAndFirstCharsFiter(param), user);
+        }
     }
 
     public async Task Delete(PartitionKeyAndFirstCharFilter[] @params)

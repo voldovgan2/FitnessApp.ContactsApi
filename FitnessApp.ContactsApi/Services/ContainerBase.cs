@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Helpers;
@@ -12,12 +11,10 @@ namespace FitnessApp.ContactsApi.Services;
 
 public abstract class ContainerBase
 {
-    protected readonly IMapper Mapper;
     protected readonly IFirstCharSearchUserDbContext FirstCharsContext;
 
-    protected ContainerBase(IMapper mapper, IFirstCharSearchUserDbContext firstCharsContext)
+    protected ContainerBase(IFirstCharSearchUserDbContext firstCharsContext)
     {
-        Mapper = mapper;
         FirstCharsContext = firstCharsContext;
     }
 
@@ -29,11 +26,10 @@ public abstract class ContainerBase
         var firstCharsKeys = KeyHelper.GetKeysByFirstChars(userToAdd, 0, charsCount);
         var users = firstCharsKeys.Select(firstCharsKey =>
         {
-            var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(userToAdd);
-            firstCharSearchUser.Id = Guid.NewGuid().ToString("N");
-            firstCharSearchUser.FirstChars = firstCharsKey;
-            firstCharSearchUser.PartitionKey = createPartitionKey(firstCharsKey);
-            return firstCharSearchUser;
+            return ConvertHelper.FirstCharSearchUserEntityFromUserEntity(
+                userToAdd,
+                firstCharsKey,
+                createPartitionKey(firstCharsKey));
         });
         return FirstCharsContext.Add([..users]);
     }
@@ -52,25 +48,29 @@ public abstract class ContainerBase
         return FirstCharsContext.Delete([..@params]);
     }
 
+    /// <summary>
+    /// Updates user general info(for now just artificial rating) in search context, not affects partition key and chars count.
+    /// </summary>
+    /// <param name="user">User to update.</param>
+    /// <param name="createPartitionKey">Func to create partition key for foltering only.</param>
+    /// <param name="charsCount">Chars count.</param>
+    /// <returns>Task.</returns>
     protected async Task UpdateUserInFirstCharsContext(
         UserEntity user,
         Func<string, string> createPartitionKey,
         int charsCount)
     {
         var keysToUpdate = KeyHelper.GetKeysByFirstChars(user, 0, charsCount);
-        var updateTasks = keysToUpdate.Select(keyToUpdate =>
+        var @params = keysToUpdate
+            .Select(keyToUpdate => new PartitionKeyAndIdAndFirstCharFilter(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate))
+            .ToArray();
+        var firstCharSearchUserEntities = await FirstCharsContext.Get(@params);
+        foreach (var firstCharSearchUserEntity in firstCharSearchUserEntities)
         {
-            var getFirstCharSearchUserEntityTask = FirstCharsContext.Get(new PartitionKeyAndIdAndFirstCharFilter(createPartitionKey(keyToUpdate), user.UserId, keyToUpdate));
-            return getFirstCharSearchUserEntityTask.ContinueWith((firstCharSearchUserEntityTask) =>
-            {
-                var firstCharSearchUserEntity = firstCharSearchUserEntityTask.Result;
-                firstCharSearchUserEntity.Category = user.Category;
-                firstCharSearchUserEntity.PartitionKey = createPartitionKey(keyToUpdate);
-                firstCharSearchUserEntity.FirstChars = keyToUpdate;
-                return FirstCharsContext.Update(firstCharSearchUserEntity);
-            });
-        });
-        await Task.WhenAll(updateTasks);
+            ConvertHelper.UpdateFirstCharSearchUserEntityByUserEntity(firstCharSearchUserEntity, user);
+        }
+
+        await FirstCharsContext.Replace(firstCharSearchUserEntities);
     }
 
     protected async Task UpdateUserInFirstCharsContext(
@@ -87,14 +87,10 @@ public abstract class ContainerBase
         ));
         var deleteUsersTask = FirstCharsContext.Delete([..@params]);
 
-        var firstCharSearchUser = Mapper.Map<FirstCharSearchUserEntity>(newUser);
-        var users = KeysToAdd.Select(keyToAdd =>
-        {
-            var partitionKey = createPartitionKey(keyToAdd);
-            firstCharSearchUser.PartitionKey = partitionKey;
-            firstCharSearchUser.FirstChars = keyToAdd;
-            return firstCharSearchUser;
-        });
+        var users = KeysToAdd.Select(keyToAdd => ConvertHelper.FirstCharSearchUserEntityFromUserEntity(
+                newUser,
+                keyToAdd,
+                createPartitionKey(keyToAdd)));
         var addUsersTask = FirstCharsContext.Add([.. users]);
 
         await Task.WhenAll(deleteUsersTask, addUsersTask);
