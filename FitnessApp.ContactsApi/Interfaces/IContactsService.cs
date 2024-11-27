@@ -11,5 +11,4 @@ public interface IContactsService
     Task AddUser(UserModel user);
     Task FollowUser(string userId, string userToFollowId);
     Task UnFollowUser(string userId, string userToUnFollowId);
-    Task UpdateUser(UserModel oldUser, UserModel newUser);
 }

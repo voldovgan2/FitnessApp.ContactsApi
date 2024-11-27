@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace FitnessApp.ContactsApi.Events;
+﻿namespace FitnessApp.ContactsApi.Events;
 
 public class CategoryChangedEvent
 {
