@@ -24,7 +24,7 @@ public class FollowersContainer(
     /// <summary>
     /// Add user to container.
     /// </summary>
-    /// <param name="user">User, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="whoFollows">User that follows.</param>
     /// <returns>Task.</returns>
     public async Task AddUser(UserEntity user, UserEntity whoFollows)
@@ -47,7 +47,7 @@ public class FollowersContainer(
     /// <summary>
     /// Update user in container(Category or followers count changed).
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="userToUpdate">User to update.</param>
     /// <returns>Task.</returns>
     public async Task UpdateUser(UserEntity user, UserEntity userToUpdate)
@@ -65,7 +65,7 @@ public class FollowersContainer(
     /// <summary>
     /// Remove user from container if unfollow.
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="whoUnFollows">Who unfollows.</param>
     /// <returns>Task.</returns>
     public async Task RemoveUser(UserEntity user, UserEntity whoUnFollows)
@@ -88,7 +88,7 @@ public class FollowersContainer(
     /// <summary>
     /// Updates user first and/or last name. As result, we need to update first chars.
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="oldUser">Old user data.</param>
     /// <param name="newUser">New user data.</param>
     /// <returns>Task.</returns>
@@ -126,7 +126,7 @@ public class FollowersContainer(
     /// <summary>
     /// Gets paged users by paged model.
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="model">Model with params.</param>
     /// <returns cref = "PagedDataModel{SearchUserEntity}">Paged model of users.</returns>
     public async Task<PagedDataModel<SearchUserEntity>> GetUsers(UserEntity user, GetUsersModel model)
@@ -140,7 +140,7 @@ public class FollowersContainer(
     /// <summary>
     /// Add user to FirstCharSearchUserDbContext with userId, first char of last name, FirstChar suffix.
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="userToAdd">User to add.</param>
     /// <returns>Task.</returns>
     private async Task AddUserToLastNameFirstCharCollection(UserEntity user, UserEntity userToAdd)
@@ -157,7 +157,7 @@ public class FollowersContainer(
     /// Updates user general info(for now just artificial rating) in search from FirstCharSearchUserDbContext with userId, first char of last name, FirstChar suffix.
     /// Not affects partition key and chars count.
     /// </summary>
-    /// <param name="user">User in wich context(partition key) to update.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="userToUpdate">Who to update.</param>
     /// <returns>Task.</returns>
     private async Task UpdateUserInLastNameFirstCharCollection(UserEntity user, UserEntity userToUpdate)
@@ -172,7 +172,7 @@ public class FollowersContainer(
     /// <summary>
     /// Remove user from FirstCharSearchUserDbContext with userId, first char of last name, FirstChar suffix.
     /// </summary>
-    /// <param name="user">In which user context to update user, used to buil partition key and chars count.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="userToRemove">User to remove.</param>
     /// <returns>Task.</returns>
     private async Task DeleteUserfromLastNameFirstCharCollection(UserEntity user, UserEntity userToRemove)
@@ -187,10 +187,10 @@ public class FollowersContainer(
     /// Delete user from FirstCharSearchUserDbContext with userId, first char of last name, FirstChar suffix.
     /// Add user with new first char of last name, FirstChar suffix.
     /// </summary>
-    /// <param name="user"></param>
-    /// <param name="oldUser"></param>
-    /// <param name="newUser"></param>
-    /// <returns></returns>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="oldUser">Previous user info(FirstName, LastName).</param>
+    /// <param name="newUser">New user info(FirstName, LastName).</param>
+    /// <returns>Task.</returns>
     private async Task UpdateUserByFirstChar(UserEntity user, UserEntity oldUser, UserEntity newUser)
     {
         if (oldUser.LastName.First() != newUser.LastName.First())
@@ -207,6 +207,14 @@ public class FollowersContainer(
         }
     }
 
+    /// <summary>
+    /// Handle upgrade - add new reccords for users with more chars in partition key.
+    /// Also update MapContext - changes first chars.
+    /// </summary>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="oldCharsCount">Previous category chars count.</param>
+    /// <param name="newCharsCount">New category chars count.</param>
+    /// <returns>Task.</returns>
     private async Task HandleUpgrade(
         UserEntity user,
         int oldCharsCount,
@@ -217,6 +225,14 @@ public class FollowersContainer(
         await UpgradeFirstCharsMapContext(user, followers, oldCharsCount, newCharsCount);
     }
 
+    /// <summary>
+    /// Add new reccords for users with more chars in partition key.
+    /// </summary>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="followers">Array of followers to construct and add new partition keys.</param>
+    /// <param name="oldCharsCount">Previous category chars count.</param>
+    /// <param name="newCharsCount">New category chars count.</param>
+    /// <returns>Task.</returns>
     private async Task UpgradeFirstCharsContext(
         UserEntity user,
         FirstCharSearchUserEntity[] followers,
@@ -241,6 +257,14 @@ public class FollowersContainer(
         await FirstCharsContext.Add([.. users]);
     }
 
+    /// <summary>
+    /// Update FirstCharContext - after increase chars count, we add more keys to user first char keys in map context.
+    /// </summary>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="followers">Array of followers to construct and add new first char keys.</param>
+    /// <param name="oldCharsCount">Previous category chars count.</param>
+    /// <param name="newCharsCount">New category chars count.</param>
+    /// <returns>Task.</returns>
     private async Task UpgradeFirstCharsMapContext(
         UserEntity user,
         SearchUserEntity[] followers,
@@ -254,17 +278,20 @@ public class FollowersContainer(
                     follower,
                     oldCharsCount,
                     newCharsCount);
-            }).SelectMany(users => users);
-        foreach (var followerByChar in followerByChars)
-        {
-            await UpdateFirstCharsContext(
-                        user,
-                        FirstCharsEntityType.FirstChars,
-                        followerByChar,
-                        true);
-        }
+            }).SelectMany(firstCharKeys => firstCharKeys);
+        await Task.WhenAll(followerByChars.Select(followerByChar => UpdateFirstCharsContext(
+            user,
+            FirstCharsEntityType.FirstChars,
+            followerByChar,
+            true)));
     }
 
+    /// <summary>
+    /// Add informative comment after final implementation.
+    /// </summary>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="newCharsCount">New chars count.</param>
+    /// <returns>Task.</returns>
     private async Task HandleDowngrade(UserEntity user, int newCharsCount)
     {
         var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
@@ -274,6 +301,13 @@ public class FollowersContainer(
         await FirstCharsContext.Delete([..@params]);
     }
 
+    /// <summary>
+    /// Add informative comment after final implementation.
+    /// </summary>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <param name="userToUpdate">User to update.</param>
+    /// <param name="increase">Increase or decrease - might be changed to int +(-)1.</param>
+    /// <returns>Task.</returns>
     private async Task UpdateFirstCharsContext(
         UserEntity user,
         UserEntity userToUpdate,
@@ -294,7 +328,7 @@ public class FollowersContainer(
     /// <summary>
     /// Update context map if we add or remove user to/from context. We need it for both FirstChar and LastName.
     /// </summary>
-    /// <param name="user">In which user context to update context map.</param>
+    /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="firstCharsEntityType">FirstChar or LastName.</param>
     /// <param name="lastNameFirstChar">First char value.</param>
     /// <param name="increase">Increase or decrease followers count.</param>
@@ -343,7 +377,7 @@ public class FollowersContainer(
     /// <summary>
     /// Gets all users followers by using FirstChar suffix.
     /// </summary>
-    /// <param name="userId">In which user context to get followers.</param>
+    /// <param name="userId">In which user context to execute method, used to build partition key and chars count.</param>
     /// <returns>array of followers.</returns>
     private async Task<FirstCharSearchUserEntity[]> GetFlatFollowers(string userId)
     {
@@ -363,7 +397,7 @@ public class FollowersContainer(
     /// </summary>
     /// <param name="entityType">Entity type.</param>
     /// <param name="predicate">We may filter some first chars from result(e.g for downgrade just too big first chars).</param>
-    /// <param name="userId">In which user context to build params, used to get all chars from context map.</param>
+    /// <param name="userId">In which user context to execute method, used to build partition key and chars count.</param>
     /// <returns>Array of params.</returns>
     private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
         FirstCharsEntityType entityType,
