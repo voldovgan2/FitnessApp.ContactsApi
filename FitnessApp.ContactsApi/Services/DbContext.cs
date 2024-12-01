@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using FitnessApp.Common.Abstractions.Db;
 using FitnessApp.Common.Paged.Models.Output;
@@ -113,7 +112,7 @@ public class FollowingDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
     public async Task<MeFollowingEntity> Delete(string userId, string followingId)
     {
         var result = await Find(userId, followingId) ?? throw new FollowerNotFoundException(userId, followingId);
-        var deleteResult = await Collection.DeleteOneAsync(DbContextHelper.CreateGetByUserIdFiter<MeFollowingEntity>(userId));
+        var deleteResult = await Collection.DeleteOneAsync(DbContextHelper.CreateGetByUserIdAndFollowingIdFiter<MeFollowingEntity>(userId, followingId));
         return Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? result
             : throw new FollowerNotFoundException(userId, followingId);
