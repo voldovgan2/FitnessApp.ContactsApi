@@ -85,12 +85,6 @@ public class ContactsServiceTests
 
         await CreateUser("Pedir", "Nedoshko");
 
-        // await CreateUser("Fehin", "Nedoshko");
-        // await CreateUser("Pehin", "Nedoshko");
-        // await CreateUser("Fedtse", "Nedoshko");
-        // await CreateUser("Pedtse", "Nedoshko");
-        // await CreateUser("Hfedir", "Nedoshko");
-        // await CreateUser("Hfehin", "Nedoshko");
         await CreateUser("Myroslava", "Pehiniova");
 
         var userRecords = await GetRecords<UserEntity>("User");
@@ -423,6 +417,35 @@ public class ContactsServiceTests
         savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
         sava = savaRecords.Single();
         Assert.Equal(1, sava.Category);
+
+        await _contactsService.FollowUser(sava.UserId, pehiniova.UserId);
+        var oldSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
+        var youngSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
+        youngSava.FirstName = "Roig";
+        youngSava.LastName = "Vasa";
+        await _contactsService.UpdateUser(oldSava, youngSava);
+        savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
+        sava = savaRecords.Single();
+
+        var pehiniovaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == pehiniova.UserId);
+        Assert.Equal(1, pehiniovaFollowers.Count(pf => pf.UserId == sava.UserId));
+        var pehiniovaFollowings = (await GetRecords<MeFollowingEntity>("Following")).Where(f => f.UserId == pehiniova.UserId);
+        Assert.Equal(1, pehiniovaFollowings.Count(pf => pf.FollowingId == sava.UserId));
+
+        firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
+        EnsureInFirstCharContext(firstCharMapContextRecords, pehiniova.UserId, "v", FirstCharsEntityType.LastName);
+        EnsureInFirstCharContext(firstCharMapContextRecords, pehiniova.UserId, "v", FirstCharsEntityType.FirstChars);
+        EnsureInFirstCharContext(firstCharMapContextRecords, pehiniova.UserId, "r", FirstCharsEntityType.FirstChars);
+
+        firstCharRecords = await GetRecords<FirstCharSearchUserEntity>("FirstCharSearchUser");
+
+        EnsureLastNameFirstCharContextWithDefaultPartitionKey(firstCharRecords, sava.UserId, "v");
+        EnsureLastNameFirstCharContextWithDefaultPartitionKey(firstCharRecords, sava.UserId, "va");
+        EnsureLastNameFirstCharContextWithDefaultPartitionKey(firstCharRecords, sava.UserId, "r");
+        EnsureLastNameFirstCharContextWithDefaultPartitionKey(firstCharRecords, sava.UserId, "ro");
+        EnsureInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "v");
+        EnsureInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "r");
+        EnsureInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "v", "FirstChar");
     }
 
     private async Task CreateUser(string firstName, string lastName)

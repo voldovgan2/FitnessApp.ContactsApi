@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FitnessApp.Common.Abstractions.Db;
 using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Events;
@@ -292,13 +293,12 @@ public class FollowersContainer(
     /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="newCharsCount">New chars count.</param>
     /// <returns>Task.</returns>
-    private async Task HandleDowngrade(UserEntity user, int newCharsCount)
+    private async Task HandleDowngrade(
+        UserEntity user,
+        int newCharsCount)
     {
-        var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
-            FirstCharsEntityType.FirstChars,
-            firstCharsValue => firstCharsValue.FirstChars.Length > newCharsCount,
-            user.UserId);
-        await FirstCharsContext.Delete([..@params]);
+        var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsFirstCharsValue(user.UserId);
+        await FirstCharsContext.Delete([.. @params.Where(param => param.FirstChars.Length > newCharsCount)]);
     }
 
     /// <summary>
@@ -381,10 +381,7 @@ public class FollowersContainer(
     /// <returns>array of followers.</returns>
     private async Task<FirstCharSearchUserEntity[]> GetFlatFollowers(string userId)
     {
-        var @params = await CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
-            FirstCharsEntityType.LastName,
-            o => true,
-            userId);
+        var @params = await CreatePartitionKeyAndFirstCharParamsFromLastNameFirstCharsValue(userId);
         return [
             .. (
                     await Task.WhenAll(@params.Select(lastNameFirstCharContext.Get))
@@ -395,21 +392,36 @@ public class FollowersContainer(
     /// <summary>
     /// Create list of array params.
     /// </summary>
-    /// <param name="entityType">Entity type.</param>
-    /// <param name="predicate">We may filter some first chars from result(e.g for downgrade just too big first chars).</param>
     /// <param name="userId">In which user context to execute method, used to build partition key and chars count.</param>
     /// <returns>Array of params.</returns>
-    private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromFirstCharsValue(
-        FirstCharsEntityType entityType,
-        Func<FirstCharEntity, bool> predicate,
-        string userId)
+    private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromLastNameFirstCharsValue(string userId)
     {
-        var firstCharsValues = await firstCharMapContext.Get(userId, entityType);
-        var filtered = firstCharsValues.Where(item => predicate(item));
-        return filtered.Select(firstCharsValue =>
+        var firstCharsValues = await firstCharMapContext.Get(userId, FirstCharsEntityType.LastName);
+        return firstCharsValues.Select(firstCharsValue =>
         {
             var partitionKey = KeyHelper.CreateKeyByChars(userId, firstCharsValue.FirstChars, _suffix);
             return new PartitionKeyAndFirstCharFilter(partitionKey, firstCharsValue.FirstChars);
         });
+    }
+
+    /// <summary>
+    /// Create list of array params.
+    /// </summary>
+    /// <param name="userId">In which user context to execute method, used to build partition key and chars count.</param>
+    /// <returns>Array of params.</returns>
+    private async Task<IEnumerable<PartitionKeyAndFirstCharFilter>> CreatePartitionKeyAndFirstCharParamsFromFirstCharsFirstCharsValue(string userId)
+    {
+        var firstCharsValues = await firstCharMapContext.Get(userId, FirstCharsEntityType.FirstChars);
+        return firstCharsValues
+            .Select(firstCharsValue =>
+            {
+                var partitionKey1 = KeyHelper.CreateKeyByChars(userId, firstCharsValue.FirstChars);
+                var partitionKey2 = KeyHelper.CreateKeyByChars(userId, firstCharsValue.FirstChars, _suffix);
+                PartitionKeyAndFirstCharFilter[] @params = [
+                    new PartitionKeyAndFirstCharFilter(partitionKey1, firstCharsValue.FirstChars),
+                    new PartitionKeyAndFirstCharFilter(partitionKey2, firstCharsValue.FirstChars),
+                ];
+                return @params;
+            }).SelectMany(items => items);
     }
 }

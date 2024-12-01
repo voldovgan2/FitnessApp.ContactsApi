@@ -54,6 +54,11 @@ public class ContactsService(
         }
     }
 
+    public Task UpdateUser(UserEntity oldUser, UserEntity newUser)
+    {
+        return storage.UpdateUser(oldUser, newUser);
+    }
+
     private async Task<(UserEntity User1, UserEntity User2)> GetUsersPair(string id1, string id2)
     {
         var getUser1Task = storage.GetUser(id1);

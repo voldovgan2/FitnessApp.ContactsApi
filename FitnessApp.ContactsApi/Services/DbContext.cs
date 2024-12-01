@@ -101,12 +101,12 @@ public class FollowingDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
         return items.FirstOrDefault();
     }
 
-    public Task<MeFollowingEntity[]> Find(string userId)
+    public Task<MeFollowingEntity[]> Find(string followingId)
     {
         return Common.Helpers.DbContextHelper
             .FilterCollection(
                 Collection,
-                DbContextHelper.CreateGetByUserIdFiter<MeFollowingEntity>(userId));
+                CreateGetByFollowingIdFiter(followingId));
     }
 
     public async Task<MeFollowingEntity> Delete(string userId, string followingId)
@@ -116,6 +116,13 @@ public class FollowingDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
         return Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? result
             : throw new FollowerNotFoundException(userId, followingId);
+    }
+
+    private static FilterDefinition<MeFollowingEntity> CreateGetByFollowingIdFiter(string followingId)
+    {
+        return Builders<MeFollowingEntity>
+            .Filter
+            .Eq(s => s.FollowingId, followingId);
     }
 }
 

@@ -25,7 +25,7 @@ public interface IFollowerDbContext
 public interface IFollowingDbContext
 {
     Task<MeFollowingEntity?> Find(string userId, string followingId);
-    Task<MeFollowingEntity[]> Find(string userId);
+    Task<MeFollowingEntity[]> Find(string followingId);
     Task<MeFollowingEntity> Add(MeFollowingEntity entity);
     Task<MeFollowingEntity?> Delete(string userId, string followingId);
 }
