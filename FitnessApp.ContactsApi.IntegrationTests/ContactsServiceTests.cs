@@ -50,15 +50,9 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
         userRecords = await GetRecords<UserEntity>("User");
         sava = userRecords.Single(u => u.LastName == "Sava");
 
+        await ValidateSavaFollowersAndFollowings(userRecords, sava.UserId);
+
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
-
-        var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == sava.UserId);
-        var joinedFollowers = userRecords.Join(savaFollowers, ur => ur.UserId, sf => sf.UserId, (sf, ur) => new { sf, ur });
-        Assert.Equal(savaFollowers.Count(), joinedFollowers.Count());
-        var followings = (await GetRecords<MeFollowingEntity>("Following")).Where(f => f.UserId == sava.UserId);
-        var joinedFollowings = userRecords.Join(followings, ur => ur.UserId, uf => uf.FollowingId, (sf, ur) => new { sf, ur });
-        Assert.Equal(joinedFollowers.Count(), joinedFollowings.Count());
-
         var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
         ValidateFirstChar(
             [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
@@ -88,12 +82,7 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
         await fixture.ContactsService.FollowUser(pehiniova.UserId, sava.UserId);
 
-        var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == sava.UserId);
-        var joinedFollowers = userRecords.Join(savaFollowers, ur => ur.UserId, sf => sf.UserId, (sf, ur) => new { sf, ur });
-        Assert.Equal(savaFollowers.Count(), joinedFollowers.Count());
-        var followings = (await GetRecords<MeFollowingEntity>("Following")).Where(f => f.UserId == sava.UserId);
-        var joinedFollowings = userRecords.Join(followings, ur => ur.UserId, uf => uf.FollowingId, (sf, ur) => new { sf, ur });
-        Assert.Equal(joinedFollowers.Count(), joinedFollowings.Count());
+        await ValidateSavaFollowersAndFollowings(userRecords, sava.UserId);
 
         var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
         ValidateFirstChar(
@@ -213,6 +202,16 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
             collection,
             DbContextHelper.CreateGetByUserIdFiter<T>(userId));
         return items;
+    }
+
+    private static async Task ValidateSavaFollowersAndFollowings(UserEntity[] userRecords, string savaUserId)
+    {
+        var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == savaUserId);
+        var joinedFollowers = userRecords.Join(savaFollowers, ur => ur.UserId, sf => sf.UserId, (sf, ur) => new { sf, ur });
+        Assert.Equal(savaFollowers.Count(), joinedFollowers.Count());
+        var followings = (await GetRecords<MeFollowingEntity>("Following")).Where(f => f.UserId == savaUserId);
+        var joinedFollowings = userRecords.Join(followings, ur => ur.UserId, uf => uf.FollowingId, (sf, ur) => new { sf, ur });
+        Assert.Equal(joinedFollowers.Count(), joinedFollowings.Count());
     }
 
     private static void ValidateFirstChar(
