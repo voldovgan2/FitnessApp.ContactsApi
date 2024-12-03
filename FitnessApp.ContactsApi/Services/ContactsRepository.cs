@@ -108,6 +108,7 @@ public class ContactsRepository(
         var followings = await userFollowingsContext.Find(oldUser.UserId);
         var users = await Task.WhenAll(followings.Select(following => GetUser(following.UserId)));
         await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, oldUser, newUser)));
+        await usersContext.UpdateUser(newUser);
     }
 
     public async Task HandleCategoryChange(CategoryChangedEvent categoryChangedEvent)

@@ -1,6 +1,4 @@
 ﻿using FitnessApp.Common.Abstractions.Db;
-using FitnessApp.Common.Helpers;
-using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Models;
 using FitnessApp.ContactsApi.Services;
 using Microsoft.Extensions.Caching.Distributed;
@@ -64,10 +62,10 @@ public class ContactsServiceFixture : IDisposable
             categoryChangeHandler,
             dateTimeService);
 
-        SeedData().GetAwaiter().GetResult();
+        CreateUsers().GetAwaiter().GetResult();
     }
 
-    private async Task SeedData()
+    private async Task CreateUsers()
     {
         await CreateUser("Igor", "Sava");
 
@@ -87,31 +85,6 @@ public class ContactsServiceFixture : IDisposable
         await CreateUser("Pedir", "Nedoshko");
 
         await CreateUser("Myroslava", "Pehiniova");
-
-        var userRecords = await GetRecords<UserEntity>("User");
-        var sava = userRecords.Single(u => u.LastName == "Sava");
-
-        var startuper0 = userRecords.Single(feh => feh.FirstName == "Fedir" && feh.LastName == "Nedashkovskiy");
-        var startuper1 = userRecords.Single(feh => feh.FirstName == "Pedir" && feh.LastName == "Nydoshkivskiy");
-        var startuper2 = userRecords.Single(feh => feh.FirstName == "Fehin" && feh.LastName == "Nedoshok");
-        var startuper3 = userRecords.Single(feh => feh.FirstName == "Pehin" && feh.LastName == "Nedoshok");
-        var startuper4 = userRecords.Single(feh => feh.FirstName == "Pedir" && feh.LastName == "Nedoshok");
-        var startuper5 = userRecords.Single(feh => feh.FirstName == "Fedtse" && feh.LastName == "Nedoshok");
-        var startuper6 = userRecords.Single(feh => feh.FirstName == "Pedtse" && feh.LastName == "Nedoshok");
-        var startuper7 = userRecords.Single(feh => feh.FirstName == "Hfedir" && feh.LastName == "Nedoshok");
-        var startuper8 = userRecords.Single(feh => feh.FirstName == "Hfehin" && feh.LastName == "Nedoshok");
-        var startuper9 = userRecords.Single(feh => feh.FirstName == "Pedir" && feh.LastName == "Nedoshko");
-
-        await ContactsService.FollowUser(startuper0.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper1.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper2.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper3.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper4.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper5.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper6.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper7.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper8.UserId, sava.UserId);
-        await ContactsService.FollowUser(startuper9.UserId, sava.UserId);
     }
 
     private async Task CreateUser(string firstName, string lastName)
@@ -122,30 +95,6 @@ public class ContactsServiceFixture : IDisposable
             FirstName = firstName,
             LastName = lastName,
         });
-    }
-
-    public static async Task<T[]> GetRecords<T>(string collectionName)
-        where T : IWithUserIdEntity
-    {
-        var client = new MongoClient("mongodb://127.0.0.1:27017");
-        IMongoDatabase database = client.GetDatabase("FitnessContacts");
-        var collection = database.GetCollection<T>(collectionName);
-        var items = await DbContextHelper.FilterCollection(
-            collection,
-            FilterDefinition<T>.Empty);
-        return items;
-    }
-
-    public static async Task<T[]> GetRecords<T>(string userId, string collectionName)
-        where T : IWithUserIdEntity
-    {
-        var client = new MongoClient("mongodb://127.0.0.1:27017");
-        IMongoDatabase database = client.GetDatabase("FitnessContacts");
-        var collection = database.GetCollection<T>(collectionName);
-        var items = await DbContextHelper.FilterCollection(
-            collection,
-            DbContextHelper.CreateGetByUserIdFiter<T>(userId));
-        return items;
     }
 
     public void Dispose()
