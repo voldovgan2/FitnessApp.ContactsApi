@@ -1,5 +1,5 @@
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Helpers;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Helpers;
 
 namespace FitnessApp.ContactsApi.UnitTests;
 

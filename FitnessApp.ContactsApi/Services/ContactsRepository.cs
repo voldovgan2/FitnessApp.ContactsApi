@@ -2,10 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using FitnessApp.Common.Paged.Models.Output;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Events;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Interfaces;
+using FitnessApp.Contacts.Common.Models;
 using FitnessApp.ContactsApi.Interfaces;
-using FitnessApp.ContactsApi.Models;
 
 namespace FitnessApp.ContactsApi.Services;
 
@@ -109,11 +109,5 @@ public class ContactsRepository(
         var users = await Task.WhenAll(followings.Select(following => GetUser(following.UserId)));
         await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, oldUser, newUser)));
         await usersContext.UpdateUser(newUser);
-    }
-
-    public async Task HandleCategoryChange(CategoryChangedEvent categoryChangedEvent)
-    {
-        var user = await GetUser(categoryChangedEvent.UserId);
-        await userFollowersContainer.HandleCategoryChange(user, categoryChangedEvent);
     }
 }

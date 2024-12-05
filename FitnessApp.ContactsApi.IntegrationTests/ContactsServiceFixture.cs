@@ -1,5 +1,7 @@
 ﻿using FitnessApp.Common.Abstractions.Db;
-using FitnessApp.ContactsApi.Models;
+using FitnessApp.Common.ServiceBus.Nats.Services;
+using FitnessApp.Contacts.Common.Models;
+using FitnessApp.Contacts.Common.Services;
 using FitnessApp.ContactsApi.Services;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
@@ -56,10 +58,10 @@ public class ContactsServiceFixture : IDisposable
             globalContainer);
         var usersCache = new UsersCache(new Mock<IDistributedCache>().Object);
         var storage = new Storage(usersCache, contactsRepository);
-        var categoryChangeHandler = new CategoryChangeHandler(storage);
+        var serviceBus = new ServiceBus(null, "");
         ContactsService = new ContactsService(
             storage,
-            categoryChangeHandler,
+            serviceBus,
             dateTimeService);
 
         CreateUsers().GetAwaiter().GetResult();

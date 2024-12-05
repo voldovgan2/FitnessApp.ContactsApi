@@ -1,9 +1,7 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using FitnessApp.Common.Paged.Models.Output;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Events;
-using FitnessApp.ContactsApi.Models;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Models;
 
 namespace FitnessApp.ContactsApi.Interfaces;
 
@@ -20,5 +18,4 @@ public interface IContactsRepository
     Task AddFollower(UserEntity follower, string userId);
     Task RemoveFollower(UserEntity follower, string userId);
     Task UpdateUser(UserEntity oldUser, UserEntity newUser);
-    Task HandleCategoryChange(CategoryChangedEvent categoryChangedEvent);
 }

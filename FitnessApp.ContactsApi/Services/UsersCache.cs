@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Exceptions;
-using FitnessApp.ContactsApi.Helpers;
+using FitnessApp.Contacts.Common.Data;
 using FitnessApp.ContactsApi.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 

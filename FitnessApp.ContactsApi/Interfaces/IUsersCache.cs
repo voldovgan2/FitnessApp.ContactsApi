@@ -1,6 +1,5 @@
-﻿using System;
-using System.Threading.Tasks;
-using FitnessApp.ContactsApi.Data;
+﻿using System.Threading.Tasks;
+using FitnessApp.Contacts.Common.Data;
 
 namespace FitnessApp.ContactsApi.Interfaces;
 

@@ -1,6 +1,6 @@
 ﻿using FitnessApp.Common.Abstractions.Db;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Helpers;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Helpers;
 using MongoDB.Driver;
 using DbContextHelper = FitnessApp.Common.Helpers.DbContextHelper;
 

@@ -1,9 +1,9 @@
 ﻿using System.Threading.Tasks;
 using FitnessApp.Common.Paged.Models.Output;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Events;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Helpers;
+using FitnessApp.Contacts.Common.Models;
 using FitnessApp.ContactsApi.Interfaces;
-using FitnessApp.ContactsApi.Models;
 
 namespace FitnessApp.ContactsApi.Services;
 
@@ -17,14 +17,14 @@ public class Storage(IUsersCache cache, IContactsRepository contactsRepository) 
         return await contactsRepository.GetUser(userId);
     }
 
-    public Task<PagedDataModel<SearchUserEntity>> GetUsers(GetUsersModel model)
+    public async Task<PagedDataModel<UserModel>> GetUsers(GetUsersModel model)
     {
-        return contactsRepository.GetUsers(model);
+        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(await contactsRepository.GetUsers(model));
     }
 
-    public Task<PagedDataModel<SearchUserEntity>> GetUserFollowers(string userId, GetUsersModel model)
+    public async Task<PagedDataModel<UserModel>> GetUserFollowers(string userId, GetUsersModel model)
     {
-        return contactsRepository.GetUserFollowers(userId, model);
+        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(await contactsRepository.GetUserFollowers(userId, model));
     }
 
     public async Task AddUser(UserEntity user)
@@ -54,11 +54,6 @@ public class Storage(IUsersCache cache, IContactsRepository contactsRepository) 
     public Task RemoveFollower(UserEntity user, string userToUnFollowId)
     {
         return contactsRepository.RemoveFollower(user, userToUnFollowId);
-    }
-
-    public Task HandleCategoryChange(CategoryChangedEvent categoryChangedEvent)
-    {
-        return contactsRepository.HandleCategoryChange(categoryChangedEvent);
     }
 
     public Task UpdateUser(UserEntity oldUser, UserEntity newUser)
