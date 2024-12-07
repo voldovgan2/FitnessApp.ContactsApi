@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FitnessApp.Common.Abstractions.Db;
 using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.ContactsApi.Data;
 using FitnessApp.ContactsApi.Events;
@@ -280,11 +279,15 @@ public class FollowersContainer(
                     oldCharsCount,
                     newCharsCount);
             }).SelectMany(firstCharKeys => firstCharKeys);
-        await Task.WhenAll(followerByChars.Select(followerByChar => UpdateFirstCharsContext(
+        var tasks = followerByChars.Select(followerByChar => UpdateFirstCharsContext(
             user,
             FirstCharsEntityType.FirstChars,
             followerByChar,
-            true)));
+            true));
+        foreach (var task in tasks)
+        {
+            await task;
+        }
     }
 
     /// <summary>

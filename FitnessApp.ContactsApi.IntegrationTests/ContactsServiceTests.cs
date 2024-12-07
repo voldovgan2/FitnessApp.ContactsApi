@@ -82,6 +82,10 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
         await fixture.ContactsService.FollowUser(pehiniova.UserId, sava.UserId);
 
+        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
+        sava = savaRecords.Single();
+        Assert.Equal(2, sava.Category);
+
         await ValidateSavaFollowersAndFollowings(userRecords, sava.UserId);
 
         var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
@@ -99,10 +103,6 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
             sava.UserId,
             sava.Category,
             null);
-
-        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
-        sava = savaRecords.Single();
-        Assert.Equal(2, sava.Category);
     }
 
     private async Task AfterPehiniovaUnFollowsSava_SavaDowngradesCategory()

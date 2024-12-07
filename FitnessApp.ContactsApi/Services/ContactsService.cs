@@ -94,10 +94,10 @@ public class ContactsService(
             var newCategory = increased ?
                 CategoryHelper.GetUpgradeCategory(user.Category)
                 : CategoryHelper.GetDowngradeCategory(user.Category);
+            await RaiseCategoryChangedEvent(user.UserId, oldCategory, newCategory);
             user.Category = newCategory;
             user.CategoryDate = dateTimeService.Now;
             await storage.UpdateUser(user);
-            await RaiseCategoryChangedEvent(user.UserId, oldCategory, newCategory);
         }
     }
 
