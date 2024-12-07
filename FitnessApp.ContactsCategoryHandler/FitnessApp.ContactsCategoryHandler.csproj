@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="FitnessApp.Common" Version="11.0.8" />
+    <PackageReference Include="NATS.Client" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>

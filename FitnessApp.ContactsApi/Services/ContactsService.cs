@@ -104,7 +104,7 @@ public class ContactsService(
             user.Category = newCategory;
             user.CategoryDate = dateTimeService.Now;
             await storage.UpdateUser(user);
-            serviceBus.PublishEvent("categpry_changed", JsonSerializerHelper.SerializeToBytes(new CategoryChangedEvent
+            serviceBus.PublishEvent(CategoryChangedEvent.Topic, JsonSerializerHelper.SerializeToBytes(new CategoryChangedEvent
             {
                 UserId = user.UserId,
                 OldCategory = oldCategory,

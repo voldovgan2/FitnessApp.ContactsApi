@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Moq;
+using NATS.Client;
 
 namespace FitnessApp.ContactsApi.IntegrationTests;
 public class ContactsServiceFixture : IDisposable
@@ -58,7 +59,8 @@ public class ContactsServiceFixture : IDisposable
             globalContainer);
         var usersCache = new UsersCache(new Mock<IDistributedCache>().Object);
         var storage = new Storage(usersCache, contactsRepository);
-        var serviceBus = new ServiceBus(null, "");
+        var connectionFactory = new ConnectionFactory();
+        var serviceBus = new ServiceBus(connectionFactory, "nats://127.0.0.1:4222");
         ContactsService = new ContactsService(
             storage,
             serviceBus,
