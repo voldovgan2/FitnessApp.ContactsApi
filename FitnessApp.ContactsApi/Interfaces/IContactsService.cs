@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using FitnessApp.Common.Paged.Models.Output;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Models;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Models;
 
 namespace FitnessApp.ContactsApi.Interfaces;
 

@@ -24,4 +24,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="8.0.0" />  
     <PackageReference Include="NATS.Client" Version="1.1.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FitnessApp.Contacts.Common\FitnessApp.Contacts.Common.csproj" />
+  </ItemGroup>
 </Project>

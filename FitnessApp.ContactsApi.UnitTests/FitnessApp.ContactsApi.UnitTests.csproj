@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FitnessApp.Contacts.Common\FitnessApp.Contacts.Common.csproj" />
     <ProjectReference Include="..\FitnessApp.ContactsApi\FitnessApp.ContactsApi.csproj" />
   </ItemGroup>
 

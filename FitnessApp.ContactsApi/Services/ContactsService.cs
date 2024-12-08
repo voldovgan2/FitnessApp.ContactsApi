@@ -1,38 +1,45 @@
 ﻿using System;
 using System.Threading.Tasks;
+using FitnessApp.Common.Extensions;
 using FitnessApp.Common.Paged.Models.Output;
-using FitnessApp.ContactsApi.Data;
-using FitnessApp.ContactsApi.Events;
-using FitnessApp.ContactsApi.Helpers;
+using FitnessApp.Common.ServiceBus.Nats.Services;
+using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Events;
+using FitnessApp.Contacts.Common.Helpers;
+using FitnessApp.Contacts.Common.Interfaces;
+using FitnessApp.Contacts.Common.Models;
 using FitnessApp.ContactsApi.Interfaces;
-using FitnessApp.ContactsApi.Models;
 
 namespace FitnessApp.ContactsApi.Services;
 
 public class ContactsService(
     IStorage storage,
-    ICategoryChangeHandler categoryChangeHandler,
+    IServiceBus serviceBus,
     IDateTimeService dateTimeService) :
     IContactsService
 {
-    public async Task<PagedDataModel<UserModel>> GetUsers(GetUsersModel model)
+    public Task<PagedDataModel<UserModel>> GetUsers(GetUsersModel model)
     {
-        var data = await storage.GetUsers(model);
-        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(data);
+        return storage.GetUsers(model);
     }
 
-    public async Task<PagedDataModel<UserModel>> GetUserFollowers(string userId, GetUsersModel model)
+    public Task<PagedDataModel<UserModel>> GetUserFollowers(string userId, GetUsersModel model)
     {
-        var data = await storage.GetUserFollowers(userId, model);
-        return ConvertHelper.PagedFirstCharSearchUserEntityFromPagedUserModel(data);
+        return storage.GetUserFollowers(userId, model);
     }
 
     public Task AddUser(UserModel user)
     {
-        var userEntity = ConvertHelper.UserEntityFromUserModel(user);
-        userEntity.Category = 1;
-        userEntity.CategoryDate = dateTimeService.Now;
-        userEntity.Rating = 1;
+        var userEntity = new UserEntity
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            UserId = user.UserId,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Category = 1,
+            CategoryDate = dateTimeService.Now,
+            Rating = 1
+        };
         return storage.AddUser(userEntity);
     }
 
@@ -72,7 +79,7 @@ public class ContactsService(
         userToFollow.FollowersCount++;
         await storage.AddFollower(user, userToFollow.UserId);
         await storage.UpdateUser(userToFollow);
-        await HandleCategoryChange(true, userToFollow);
+        HandleCategoryChange(true, userToFollow);
     }
 
     private async Task RemoveFollower(UserEntity user, UserEntity userToUnFollow)
@@ -80,10 +87,10 @@ public class ContactsService(
         userToUnFollow.FollowersCount--;
         await storage.RemoveFollower(user, userToUnFollow.UserId);
         await storage.UpdateUser(userToUnFollow);
-        await HandleCategoryChange(false, userToUnFollow);
+        HandleCategoryChange(false, userToUnFollow);
     }
 
-    private async Task HandleCategoryChange(bool increased, UserEntity user)
+    private void HandleCategoryChange(bool increased, UserEntity user)
     {
         Func<UserEntity, DateTime, bool> shouldChangeCategory = increased ?
             CategoryHelper.ShouldUpgradeCategory
@@ -94,25 +101,12 @@ public class ContactsService(
             var newCategory = increased ?
                 CategoryHelper.GetUpgradeCategory(user.Category)
                 : CategoryHelper.GetDowngradeCategory(user.Category);
-            await RaiseCategoryChangedEvent(user.UserId, oldCategory, newCategory);
-            user.Category = newCategory;
-            user.CategoryDate = dateTimeService.Now;
-            await storage.UpdateUser(user);
+            serviceBus.PublishEvent(CategoryChangedEvent.Topic, JsonSerializerHelper.SerializeToBytes(new CategoryChangedEvent
+            {
+                UserId = user.UserId,
+                OldCategory = oldCategory,
+                NewCategory = newCategory,
+            }));
         }
-    }
-
-    private Task RaiseCategoryChangedEvent(string userId, byte oldCategory, byte newCategory)
-    {
-        return HandleCategoryChangedEvent(userId, oldCategory, newCategory);
-    }
-
-    private Task HandleCategoryChangedEvent(string userId, byte oldCategory, byte newCategory)
-    {
-        return categoryChangeHandler.Handle(new CategoryChangedEvent
-        {
-            UserId = userId,
-            OldCategory = oldCategory,
-            NewCategory = newCategory,
-        });
     }
 }

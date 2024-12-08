@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FitnessApp.Contacts.Common.Models;
 using FitnessApp.ContactsApi.Interfaces;
-using FitnessApp.ContactsApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessApp.ContactsApi.Controllers;

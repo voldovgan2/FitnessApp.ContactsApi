@@ -1,0 +1,6 @@
+@FitnessApp.ContactsCategoryHandler_HostAddress = http://localhost:5107
+
+GET {{FitnessApp.ContactsCategoryHandler_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

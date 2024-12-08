@@ -20,3 +20,8 @@ services:
     image: redis/redisinsight
     ports:
       - '5540:5540'
+
+  nats:
+    image: nats
+    ports:
+      - "4222:4222"
