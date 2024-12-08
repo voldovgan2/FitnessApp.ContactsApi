@@ -11,12 +11,11 @@ public interface ICategoryChangeHandler
     Task Handle(CategoryChangedEvent @event);
 }
 
-public class CategoryChangeHandler(IUserDbContext usersContext, IFollowersContainer userFollowersContainer) : ICategoryChangeHandler
+public class CategoryChangeHandler(IStorage storage) : ICategoryChangeHandler
 {
     public Task Handle(CategoryChangedEvent @event)
     {
-        return usersContext
-            .Get(@event.UserId).ContinueWith(getUserTask => userFollowersContainer.HandleCategoryChange(getUserTask.Result.UserId, @event));
+        return storage.HandleCategoryChange(@event);
     }
 }
 

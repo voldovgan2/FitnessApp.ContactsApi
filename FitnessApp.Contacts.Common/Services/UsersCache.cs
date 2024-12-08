@@ -1,10 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
-using FitnessApp.Contacts.Common.Data;
-using FitnessApp.ContactsApi.Interfaces;
+﻿using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace FitnessApp.ContactsApi.Services;
+namespace FitnessApp.Contacts.Common.Services;
 
 public class UsersCache(IDistributedCache distributedCache) : IUsersCache
 {
@@ -13,7 +11,7 @@ public class UsersCache(IDistributedCache distributedCache) : IUsersCache
         ArgumentNullException.ThrowIfNull(distributedCache);
         var key = CreateKey(id);
         ArgumentNullException.ThrowIfNull(key);
-        UserEntity result = null;
+        UserEntity result = new UserEntity();
         return Task.FromResult(result);
 
         // return await CacheHelper.LoadData<UserEntity>(distributedCache, CreateKey(id)) ??

@@ -1,9 +1,9 @@
-﻿using System.Threading.Tasks;
-using FitnessApp.Common.Paged.Models.Output;
+﻿using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Events;
 using FitnessApp.Contacts.Common.Models;
 
-namespace FitnessApp.ContactsApi.Interfaces;
+namespace FitnessApp.Contacts.Common.Interfaces;
 
 public interface IStorage
 {
@@ -16,4 +16,5 @@ public interface IStorage
     Task AddFollower(UserEntity user, string userToFollowId);
     Task RemoveFollower(UserEntity user, string userToUnFollowId);
     Task UpdateUser(UserEntity oldUser, UserEntity newUser);
+    Task HandleCategoryChange(CategoryChangedEvent @event);
 }

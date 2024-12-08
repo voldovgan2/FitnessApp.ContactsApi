@@ -1,11 +1,11 @@
-﻿using System.Threading.Tasks;
-using FitnessApp.Common.Paged.Models.Output;
+﻿using FitnessApp.Common.Paged.Models.Output;
 using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Events;
 using FitnessApp.Contacts.Common.Helpers;
+using FitnessApp.Contacts.Common.Interfaces;
 using FitnessApp.Contacts.Common.Models;
-using FitnessApp.ContactsApi.Interfaces;
 
-namespace FitnessApp.ContactsApi.Services;
+namespace FitnessApp.Contacts.Common.Services;
 
 public class Storage(IUsersCache cache, IContactsRepository contactsRepository) : IStorage
 {
@@ -59,5 +59,10 @@ public class Storage(IUsersCache cache, IContactsRepository contactsRepository) 
     public Task UpdateUser(UserEntity oldUser, UserEntity newUser)
     {
         return contactsRepository.UpdateUser(oldUser, newUser);
+    }
+
+    public Task HandleCategoryChange(CategoryChangedEvent @event)
+    {
+        return contactsRepository.HandleCategoryChange(@event);
     }
 }
