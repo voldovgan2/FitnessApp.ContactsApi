@@ -5,7 +5,7 @@ using MongoDB.Driver;
 using DbContextHelper = FitnessApp.Common.Helpers.DbContextHelper;
 
 namespace FitnessApp.ContactsApi.IntegrationTests;
-public class CategoryChangeServiceTests(ContactsServiceFixture fixture) : IClassFixture<ContactsServiceFixture>
+public class CategoryChangeServiceTests(ContactsFixture fixture) : IClassFixture<ContactsFixture>
 {
     [Fact]
     public async Task Test()

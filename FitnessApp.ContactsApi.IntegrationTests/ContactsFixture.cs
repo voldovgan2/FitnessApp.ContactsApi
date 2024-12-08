@@ -14,7 +14,7 @@ using Moq;
 using NATS.Client;
 
 namespace FitnessApp.ContactsApi.IntegrationTests;
-public class ContactsServiceFixture : IDisposable
+public class ContactsFixture : IDisposable
 {
     private class OptionsSnapshot : IOptionsSnapshot<MongoDbSettings>
     {
@@ -36,7 +36,7 @@ public class ContactsServiceFixture : IDisposable
     private readonly MongoClient _client;
     private readonly BlockingCollection<CategoryChangedEvent> _messageQueue = [];
 
-    public ContactsServiceFixture()
+    public ContactsFixture()
     {
         var dateTimeService = new DateTimeService();
         var optionsSnapshot = new OptionsSnapshot();

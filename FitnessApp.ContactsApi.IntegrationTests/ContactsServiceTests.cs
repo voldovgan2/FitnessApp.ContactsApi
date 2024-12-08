@@ -6,7 +6,7 @@ using DbContextHelper = FitnessApp.Common.Helpers.DbContextHelper;
 
 namespace FitnessApp.ContactsApi.IntegrationTests;
 
-public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixture<ContactsServiceFixture>
+public class ContactsServiceTests(ContactsFixture fixture) : IClassFixture<ContactsFixture>
 {
     [Fact]
     public async Task Test()
