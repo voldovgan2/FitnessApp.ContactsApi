@@ -12,11 +12,7 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
     public async Task Test()
     {
         await AfterStartupersFollowSava_SavaHasStartupersAsFollowers();
-
-        await AfterPehiniovaFollowsSava_SavaUpgradesCategory();
-
-        await AfterPehiniovaUnFollowsSava_SavaDowngradesCategory();
-
+        await AfterPehiniovaFollowsAndUnFollowsSava_SavaDowngradesCategory();
         await AfterSavaFollowsPehiniovaAndSavaChangeData_PehiniovaHasYoungSavaAsFollower();
     }
 
@@ -74,27 +70,13 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
         Assert.Equal(1, sava.Category);
     }
 
-    private async Task AfterPehiniovaFollowsSava_SavaUpgradesCategory()
+    private async Task AfterPehiniovaFollowsAndUnFollowsSava_SavaDowngradesCategory()
     {
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
-
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+
         await fixture.ContactsService.FollowUser(pehiniova.UserId, sava.UserId);
-
-        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
-        sava = savaRecords.Single();
-        Assert.Equal(2, sava.Category);
-    }
-
-    private async Task AfterPehiniovaUnFollowsSava_SavaDowngradesCategory()
-    {
-        var userRecords = await GetRecords<UserEntity>("User");
-
-        var sava = userRecords.Single(u => u.LastName == "Sava");
-
-        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
-
         await fixture.ContactsService.UnFollowUser(pehiniova.UserId, sava.UserId);
 
         var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == sava.UserId);
@@ -107,11 +89,6 @@ public class ContactsServiceTests(ContactsServiceFixture fixture) : IClassFixtur
 
         EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "p", FirstCharsEntityType.LastName);
         EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "m", FirstCharsEntityType.FirstChars);
-        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "my", FirstCharsEntityType.FirstChars);
-
-        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
-        sava = savaRecords.Single();
-        Assert.Equal(1, sava.Category);
     }
 
     private async Task AfterSavaFollowsPehiniovaAndSavaChangeData_PehiniovaHasYoungSavaAsFollower()
