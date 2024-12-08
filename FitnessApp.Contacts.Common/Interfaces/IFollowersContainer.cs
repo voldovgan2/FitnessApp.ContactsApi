@@ -11,6 +11,6 @@ public interface IFollowersContainer
     Task UpdateUser(UserEntity user, UserEntity userToUpdate);
     Task RemoveUser(UserEntity user, UserEntity whoUnFollows);
     Task UpdateUser(UserEntity user, UserEntity oldUser, UserEntity newUser);
-    Task HandleCategoryChange(string userId, CategoryChangedEvent categoryChangedEvent);
+    Task HandleCategoryChange(CategoryChangedEvent @event);
     Task<PagedDataModel<SearchUserEntity>> GetUsers(UserEntity user, GetUsersModel model);
 }

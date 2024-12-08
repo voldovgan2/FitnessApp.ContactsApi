@@ -79,7 +79,7 @@ public class ContactsService(
         userToFollow.FollowersCount++;
         await storage.AddFollower(user, userToFollow.UserId);
         await storage.UpdateUser(userToFollow);
-        await HandleCategoryChange(true, userToFollow);
+        HandleCategoryChange(true, userToFollow);
     }
 
     private async Task RemoveFollower(UserEntity user, UserEntity userToUnFollow)
@@ -87,10 +87,10 @@ public class ContactsService(
         userToUnFollow.FollowersCount--;
         await storage.RemoveFollower(user, userToUnFollow.UserId);
         await storage.UpdateUser(userToUnFollow);
-        await HandleCategoryChange(false, userToUnFollow);
+        HandleCategoryChange(false, userToUnFollow);
     }
 
-    private async Task HandleCategoryChange(bool increased, UserEntity user)
+    private void HandleCategoryChange(bool increased, UserEntity user)
     {
         Func<UserEntity, DateTime, bool> shouldChangeCategory = increased ?
             CategoryHelper.ShouldUpgradeCategory
@@ -101,9 +101,6 @@ public class ContactsService(
             var newCategory = increased ?
                 CategoryHelper.GetUpgradeCategory(user.Category)
                 : CategoryHelper.GetDowngradeCategory(user.Category);
-            user.Category = newCategory;
-            user.CategoryDate = dateTimeService.Now;
-            await storage.UpdateUser(user);
             serviceBus.PublishEvent(CategoryChangedEvent.Topic, JsonSerializerHelper.SerializeToBytes(new CategoryChangedEvent
             {
                 UserId = user.UserId,

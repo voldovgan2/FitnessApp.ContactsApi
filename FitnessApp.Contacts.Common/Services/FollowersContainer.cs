@@ -102,21 +102,20 @@ public class FollowersContainer(
     /// <summary>
     /// If user category changed, increase or decrease users with corresponding partition keys.
     /// </summary>
-    /// <param name="userId">User, retrieved from Db by UserId of event.</param>
-    /// <param name="categoryChangedEvent">Event.</param>
+    /// <param name="event">Event.</param>
     /// <returns>Task.</returns>
     /// <exception cref="FollowersContainerException">If categories delta abs is not 1 throws exception.</exception>
-    public async Task HandleCategoryChange(string userId, CategoryChangedEvent categoryChangedEvent)
+    public async Task HandleCategoryChange(CategoryChangedEvent @event)
     {
-        if (Math.Abs(categoryChangedEvent.OldCategory - categoryChangedEvent.NewCategory) != 1)
-            throw new FollowersContainerException($"New category({categoryChangedEvent.NewCategory}) doesn't match to expected by old category({categoryChangedEvent.OldCategory})");
-        var oldCharsCount = CategoryHelper.GetCategoryCharsCount(categoryChangedEvent.OldCategory);
-        var newCharsCount = CategoryHelper.GetCategoryCharsCount(categoryChangedEvent.NewCategory);
-        var isUpgrating = categoryChangedEvent.OldCategory < categoryChangedEvent.NewCategory;
+        if (Math.Abs(@event.OldCategory - @event.NewCategory) != 1)
+            throw new FollowersContainerException($"New category({@event.NewCategory}) doesn't match to expected by old category({@event.OldCategory})");
+        var oldCharsCount = CategoryHelper.GetCategoryCharsCount(@event.OldCategory);
+        var newCharsCount = CategoryHelper.GetCategoryCharsCount(@event.NewCategory);
+        var isUpgrating = @event.OldCategory < @event.NewCategory;
         if (isUpgrating)
-            await HandleUpgrade(userId, oldCharsCount, newCharsCount);
+            await HandleUpgrade(@event.UserId, oldCharsCount, newCharsCount);
         else
-            await HandleDowngrade(userId, newCharsCount);
+            await HandleDowngrade(@event.UserId, newCharsCount);
     }
 
     /// <summary>

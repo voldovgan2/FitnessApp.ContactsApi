@@ -3,6 +3,7 @@ using FitnessApp.Common.ServiceBus.Nats.Services;
 using FitnessApp.Contacts.Common.Models;
 using FitnessApp.Contacts.Common.Services;
 using FitnessApp.ContactsApi.Services;
+using FitnessApp.ContactsCategoryHandler;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -28,6 +29,7 @@ public class ContactsServiceFixture : IDisposable
     }
 
     public readonly ContactsService ContactsService;
+    public readonly CategoryChangeHandler CtegoryChangeHandler;
     private readonly MongoClient _client;
 
     public ContactsServiceFixture()
@@ -58,14 +60,17 @@ public class ContactsServiceFixture : IDisposable
             followersContainer,
             globalContainer);
         var usersCache = new UsersCache(new Mock<IDistributedCache>().Object);
-        var storage = new Storage(usersCache, contactsRepository);
+        var storage = new Storage(
+            usersCache,
+            contactsRepository,
+            dateTimeService);
         var connectionFactory = new ConnectionFactory();
         var serviceBus = new ServiceBus(connectionFactory, "nats://127.0.0.1:4222");
         ContactsService = new ContactsService(
             storage,
             serviceBus,
             dateTimeService);
-
+        CtegoryChangeHandler = new CategoryChangeHandler(storage);
         CreateUsers().GetAwaiter().GetResult();
     }
 

@@ -7,7 +7,10 @@ using FitnessApp.Contacts.Common.Models;
 
 namespace FitnessApp.Contacts.Common.Services;
 
-public class Storage(IUsersCache cache, IContactsRepository contactsRepository) : IStorage
+public class Storage(
+    IUsersCache cache,
+    IContactsRepository contactsRepository,
+    IDateTimeService dateTimeService) : IStorage
 {
     public async Task<UserEntity> GetUser(string userId)
     {
@@ -61,8 +64,12 @@ public class Storage(IUsersCache cache, IContactsRepository contactsRepository) 
         return contactsRepository.UpdateUser(oldUser, newUser);
     }
 
-    public Task HandleCategoryChange(CategoryChangedEvent @event)
+    public async Task HandleCategoryChange(CategoryChangedEvent @event)
     {
-        return contactsRepository.HandleCategoryChange(@event);
+        await contactsRepository.HandleCategoryChange(@event);
+        var user = await GetUser(@event.UserId);
+        user.Category = @event.NewCategory;
+        user.CategoryDate = dateTimeService.Now;
+        await UpdateUser(user);
     }
 }

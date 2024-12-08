@@ -110,6 +110,6 @@ public class ContactsRepository(
 
     public Task HandleCategoryChange(CategoryChangedEvent @event)
     {
-
+        return userFollowersContainer.HandleCategoryChange(@event);
     }
 }

@@ -6,12 +6,12 @@ namespace FitnessApp.Contacts.Common.Services;
 
 public class UsersCache(IDistributedCache distributedCache) : IUsersCache
 {
-    public Task<UserEntity> GetUser(string id)
+    public Task<UserEntity?> GetUser(string id)
     {
         ArgumentNullException.ThrowIfNull(distributedCache);
         var key = CreateKey(id);
         ArgumentNullException.ThrowIfNull(key);
-        UserEntity result = new UserEntity();
+        UserEntity? result = null;
         return Task.FromResult(result);
 
         // return await CacheHelper.LoadData<UserEntity>(distributedCache, CreateKey(id)) ??
