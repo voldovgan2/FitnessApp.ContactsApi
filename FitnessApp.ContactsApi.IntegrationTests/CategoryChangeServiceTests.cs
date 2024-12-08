@@ -50,13 +50,8 @@ public class CategoryChangeServiceTests(ContactsServiceFixture fixture) : IClass
         var sava = userRecords.Single(u => u.LastName == "Sava");
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
         await fixture.ContactsService.FollowUser(pehiniova.UserId, sava.UserId);
-
-        await fixture.CtegoryChangeHandler.Handle(new Contacts.Common.Events.CategoryChangedEvent
-        {
-            UserId = sava.UserId,
-            OldCategory = 1,
-            NewCategory = 2,
-        });
+        var message = fixture.GetEvent();
+        await fixture.CtegoryChangeHandler.Handle(message);
 
         var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
         sava = savaRecords.Single();
@@ -85,12 +80,8 @@ public class CategoryChangeServiceTests(ContactsServiceFixture fixture) : IClass
         var sava = userRecords.Single(u => u.LastName == "Sava");
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
         await fixture.ContactsService.UnFollowUser(pehiniova.UserId, sava.UserId);
-        await fixture.CtegoryChangeHandler.Handle(new Contacts.Common.Events.CategoryChangedEvent
-        {
-            UserId = sava.UserId,
-            OldCategory = 2,
-            NewCategory = 1,
-        });
+        var message = fixture.GetEvent();
+        await fixture.CtegoryChangeHandler.Handle(message);
 
         userRecords = await GetRecords<UserEntity>("User");
         sava = userRecords.Single(u => u.LastName == "Sava");

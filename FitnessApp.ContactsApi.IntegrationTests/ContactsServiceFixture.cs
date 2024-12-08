@@ -1,5 +1,8 @@
-﻿using FitnessApp.Common.Abstractions.Db;
+﻿using System.Collections.Concurrent;
+using FitnessApp.Common.Abstractions.Db;
+using FitnessApp.Common.Serializer;
 using FitnessApp.Common.ServiceBus.Nats.Services;
+using FitnessApp.Contacts.Common.Events;
 using FitnessApp.Contacts.Common.Models;
 using FitnessApp.Contacts.Common.Services;
 using FitnessApp.ContactsApi.Services;
@@ -31,6 +34,7 @@ public class ContactsServiceFixture : IDisposable
     public readonly ContactsService ContactsService;
     public readonly CategoryChangeHandler CtegoryChangeHandler;
     private readonly MongoClient _client;
+    private readonly BlockingCollection<CategoryChangedEvent> _messageQueue = [];
 
     public ContactsServiceFixture()
     {
@@ -65,6 +69,11 @@ public class ContactsServiceFixture : IDisposable
             contactsRepository,
             dateTimeService);
         var connectionFactory = new ConnectionFactory();
+        connectionFactory.CreateConnection().SubscribeAsync(CategoryChangedEvent.Topic, (sender, args) =>
+        {
+            var receivedMessage = JsonConvertHelper.DeserializeFromBytes<CategoryChangedEvent>(args.Message.Data);
+            _messageQueue.Add(receivedMessage);
+        });
         var serviceBus = new ServiceBus(connectionFactory, "nats://127.0.0.1:4222");
         ContactsService = new ContactsService(
             storage,
@@ -72,6 +81,11 @@ public class ContactsServiceFixture : IDisposable
             dateTimeService);
         CtegoryChangeHandler = new CategoryChangeHandler(storage);
         CreateUsers().GetAwaiter().GetResult();
+    }
+
+    public CategoryChangedEvent GetEvent()
+    {
+        return _messageQueue.Take();
     }
 
     private async Task CreateUsers()
