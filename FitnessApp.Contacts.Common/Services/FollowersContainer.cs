@@ -274,11 +274,15 @@ public class FollowersContainer(
                     oldCharsCount,
                     newCharsCount);
             }).SelectMany(firstCharKeys => firstCharKeys);
-        await Task.WhenAll(followerByChars.Select(followerByChar => UpdateFirstCharsContext(
+        var tasks = followerByChars.Select(followerByChar => UpdateFirstCharsContext(
             userId,
             FirstCharsEntityType.FirstChars,
             followerByChar,
-            true)));
+            true));
+        foreach (var task in tasks)
+        {
+            await task;
+        }
     }
 
     /// <summary>
