@@ -54,7 +54,7 @@ public class ContactsService(
 
     public async Task UnFollowUser(string userId, string userToUnFollowId)
     {
-        if (await storage.IsFollower(userToUnFollowId, userId))
+        if (await storage.IsFollower(userId, userToUnFollowId))
         {
             var (User1, User2) = await GetUsersPair(userId, userToUnFollowId);
             await RemoveFollower(User1, User2);

@@ -1,19 +1,132 @@
-﻿using FitnessApp.Common.Abstractions.Db;
+﻿using System.Collections.Concurrent;
+using FitnessApp.Common.Abstractions.Db;
+using FitnessApp.Common.Serializer;
+using FitnessApp.Common.ServiceBus.Nats.Services;
 using FitnessApp.Contacts.Common.Data;
+using FitnessApp.Contacts.Common.Events;
 using FitnessApp.Contacts.Common.Helpers;
+using FitnessApp.Contacts.Common.Models;
+using FitnessApp.Contacts.Common.Services;
+using FitnessApp.ContactsApi.Services;
+using FitnessApp.ContactsCategoryHandler;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Moq;
+using NATS.Client;
 using DbContextHelper = FitnessApp.Common.Helpers.DbContextHelper;
 
 namespace FitnessApp.ContactsApi.IntegrationTests;
 
-public class ContactsServiceTests(ContactsFixture fixture) : IClassFixture<ContactsFixture>
+public class ContactsServiceTests
 {
+    private class OptionsSnapshot : IOptionsSnapshot<MongoDbSettings>
+    {
+        public MongoDbSettings Value => throw new NotImplementedException();
+
+        public MongoDbSettings Get(string? name)
+        {
+            return new MongoDbSettings
+            {
+                DatabaseName = "FitnessContacts",
+                CollecttionName = name,
+                ConnectionString = "mongodb://127.0.0.1:27017"
+            };
+        }
+    }
+
+    public readonly ContactsService _contactsService;
+    public readonly CategoryChangeHandler _categoryChangeHandler;
+    private readonly BlockingCollection<CategoryChangedEvent> _messageQueue = [];
+
+    public ContactsServiceTests()
+    {
+        var dateTimeService = new DateTimeService();
+        var optionsSnapshot = new OptionsSnapshot();
+        var client = new MongoClient("mongodb://127.0.0.1:27017");
+        client.DropDatabase("FitnessContacts");
+        var userDbContext = new UserDbContext(client, optionsSnapshot);
+        var followerDbContext = new FollowerDbContext(client, optionsSnapshot);
+        var followingDbContext = new FollowingDbContext(client, optionsSnapshot);
+        var followerRequestDbContext = new FollowerRequestDbContext(
+            client,
+            optionsSnapshot,
+            dateTimeService);
+        var lastNameFirstCharContext = new FirstCharSearchUserDbContext(client, optionsSnapshot);
+        var firstCharsContext = new FirstCharSearchUserDbContext(client, optionsSnapshot);
+        var firstCharMapContext = new FirstCharDbContext(client, optionsSnapshot);
+        var followersContainer = new FollowersContainer(
+            lastNameFirstCharContext,
+            firstCharsContext,
+            firstCharMapContext);
+        var globalContainer = new GlobalContainer(firstCharsContext);
+        var contactsRepository = new ContactsRepository(
+            client,
+            userDbContext,
+            followerDbContext,
+            followingDbContext,
+            followerRequestDbContext,
+            followersContainer,
+            globalContainer);
+        var usersCache = new UsersCache(new Mock<IDistributedCache>().Object);
+        var storage = new Storage(
+            usersCache,
+            contactsRepository,
+            dateTimeService);
+        var connectionFactory = new ConnectionFactory();
+        connectionFactory.CreateConnection().SubscribeAsync(CategoryChangedEvent.Topic, (sender, args) =>
+        {
+            var receivedMessage = JsonConvertHelper.DeserializeFromBytes<CategoryChangedEvent>(args.Message.Data);
+            _messageQueue.Add(receivedMessage);
+        });
+        var serviceBus = new ServiceBus(connectionFactory, "nats://127.0.0.1:4222");
+        _contactsService = new ContactsService(
+            storage,
+            serviceBus,
+            dateTimeService);
+        _categoryChangeHandler = new CategoryChangeHandler(storage);
+        CreateUsers().GetAwaiter().GetResult();
+    }
+
     [Fact]
     public async Task Test()
     {
         await AfterStartupersFollowSava_SavaHasStartupersAsFollowers();
-        await AfterPehiniovaFollowsAndUnFollowsSava_SavaDowngradesCategory();
+        await AfterPehiniovaFollowsSava_SavaUpgradesCategory();
+        await AfterPehiniovaUnFollowsSava_SavaDowngradesCategory();
         await AfterSavaFollowsPehiniovaAndSavaChangeData_PehiniovaHasYoungSavaAsFollower();
+    }
+
+    private async Task CreateUsers()
+    {
+        await CreateUser("Igor", "Sava");
+
+        await CreateUser("Fedir", "Nedashkovskiy");
+        await CreateUser("Pedir", "Nydoshkivskiy");
+
+        await CreateUser("Fehin", "Nedoshok");
+        await CreateUser("Pehin", "Nedoshok");
+        await CreateUser("Pedir", "Nedoshok");
+
+        await CreateUser("Fedtse", "Nedoshok");
+        await CreateUser("Pedtse", "Nedoshok");
+
+        await CreateUser("Hfedir", "Nedoshok");
+        await CreateUser("Hfehin", "Nedoshok");
+
+        await CreateUser("Pedir", "Nedoshko");
+
+        await CreateUser("Myroslava", "Pehiniova");
+    }
+
+    private async Task CreateUser(string firstName, string lastName)
+    {
+        await _contactsService.AddUser(new UserModel
+        {
+            UserId = Guid.NewGuid().ToString("N"),
+            FirstName = firstName,
+            LastName = lastName,
+        });
     }
 
     private async Task AfterStartupersFollowSava_SavaHasStartupersAsFollowers()
@@ -32,16 +145,16 @@ public class ContactsServiceTests(ContactsFixture fixture) : IClassFixture<Conta
         var startuper8 = userRecords.Single(feh => feh.FirstName == "Hfehin" && feh.LastName == "Nedoshok");
         var startuper9 = userRecords.Single(feh => feh.FirstName == "Pedir" && feh.LastName == "Nedoshko");
 
-        await fixture.ContactsService.FollowUser(startuper0.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper1.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper2.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper3.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper4.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper5.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper6.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper7.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper8.UserId, sava.UserId);
-        await fixture.ContactsService.FollowUser(startuper9.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper0.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper1.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper2.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper3.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper4.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper5.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper6.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper7.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper8.UserId, sava.UserId);
+        await _contactsService.FollowUser(startuper9.UserId, sava.UserId);
 
         userRecords = await GetRecords<UserEntity>("User");
         sava = userRecords.Single(u => u.LastName == "Sava");
@@ -70,14 +183,43 @@ public class ContactsServiceTests(ContactsFixture fixture) : IClassFixture<Conta
         Assert.Equal(1, sava.Category);
     }
 
-    private async Task AfterPehiniovaFollowsAndUnFollowsSava_SavaDowngradesCategory()
+    private async Task AfterPehiniovaFollowsSava_SavaUpgradesCategory()
     {
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+        await _contactsService.FollowUser(pehiniova.UserId, sava.UserId);
 
-        await fixture.ContactsService.FollowUser(pehiniova.UserId, sava.UserId);
-        await fixture.ContactsService.UnFollowUser(pehiniova.UserId, sava.UserId);
+        var message = _messageQueue.Take();
+        await _categoryChangeHandler.Handle(message);
+
+        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
+        sava = savaRecords.Single();
+        Assert.Equal(2, sava.Category);
+
+        var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
+        ValidateFirstChar(
+            [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
+            firstCharMapContextRecords,
+            sava.UserId,
+            sava.Category);
+
+        var firstCharRecords = await GetRecords<FirstCharSearchUserEntity>("FirstCharSearchUser");
+        ValidateLastNameFirstCharContextWithDefaultPartitionKey(userRecords, firstCharRecords);
+        ValidateLastNameFirstCharContextWithCustomPartitionKey(
+            [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
+            firstCharRecords,
+            sava.UserId,
+            sava.Category,
+            null);
+    }
+
+    private async Task AfterPehiniovaUnFollowsSava_SavaDowngradesCategory()
+    {
+        var userRecords = await GetRecords<UserEntity>("User");
+        var sava = userRecords.Single(u => u.LastName == "Sava");
+        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+        await _contactsService.UnFollowUser(pehiniova.UserId, sava.UserId);
 
         var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == sava.UserId);
         Assert.Null(savaFollowers.FirstOrDefault(sf => sf.FollowerId == pehiniova.UserId));
@@ -89,22 +231,41 @@ public class ContactsServiceTests(ContactsFixture fixture) : IClassFixture<Conta
 
         EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "p", FirstCharsEntityType.LastName);
         EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "m", FirstCharsEntityType.FirstChars);
+
+        var message = _messageQueue.Take();
+        await _categoryChangeHandler.Handle(message);
+
+        userRecords = await GetRecords<UserEntity>("User");
+        sava = userRecords.Single(u => u.LastName == "Sava");
+
+        var firstCharRecords = await GetRecords<FirstCharSearchUserEntity>("FirstCharSearchUser");
+
+        ValidateLastNameFirstCharContextWithDefaultPartitionKey(userRecords, firstCharRecords);
+        ValidateLastNameFirstCharContextWithCustomPartitionKey(
+            [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
+            firstCharRecords,
+            sava.UserId,
+            sava.Category,
+            sava.Category + 1);
+
+        var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
+        sava = savaRecords.Single();
+        Assert.Equal(1, sava.Category);
     }
 
     private async Task AfterSavaFollowsPehiniovaAndSavaChangeData_PehiniovaHasYoungSavaAsFollower()
     {
         var userRecords = await GetRecords<UserEntity>("User");
-
         var sava = userRecords.Single(u => u.LastName == "Sava");
 
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
 
-        await fixture.ContactsService.FollowUser(sava.UserId, pehiniova.UserId);
+        await _contactsService.FollowUser(sava.UserId, pehiniova.UserId);
         var oldSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
         var youngSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
         youngSava.FirstName = "Roig";
         youngSava.LastName = "Vasa";
-        await fixture.ContactsService.UpdateUser(oldSava, youngSava);
+        await _contactsService.UpdateUser(oldSava, youngSava);
         var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
         sava = savaRecords.Single();
 

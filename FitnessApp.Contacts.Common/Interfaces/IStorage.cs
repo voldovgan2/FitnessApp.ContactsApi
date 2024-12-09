@@ -12,7 +12,7 @@ public interface IStorage
     Task<PagedDataModel<UserModel>> GetUserFollowers(string userId, GetUsersModel model);
     Task AddUser(UserEntity user);
     Task UpdateUser(UserEntity user);
-    Task<bool> IsFollower(string currentUserId, string userToFollowId);
+    Task<bool> IsFollower(string userId, string userToFollowId);
     Task AddFollower(UserEntity user, string userToFollowId);
     Task RemoveFollower(UserEntity user, string userToUnFollowId);
     Task UpdateUser(UserEntity oldUser, UserEntity newUser);

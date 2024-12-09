@@ -3,16 +3,18 @@ using FitnessApp.Contacts.Common.Data;
 using FitnessApp.Contacts.Common.Events;
 using FitnessApp.Contacts.Common.Interfaces;
 using FitnessApp.Contacts.Common.Models;
+using MongoDB.Driver;
 
 namespace FitnessApp.Contacts.Common.Services;
 
 public class ContactsRepository(
-        IUserDbContext usersContext,
-        IFollowerDbContext userFollowersContext,
-        IFollowingDbContext userFollowingsContext,
-        IFollowerRequestDbContext followerRequestDbContext,
-        IFollowersContainer userFollowersContainer,
-        IGlobalContainer globalContainer) :
+    IMongoClient mongoClient,
+    IUserDbContext usersContext,
+    IFollowerDbContext userFollowersContext,
+    IFollowingDbContext userFollowingsContext,
+    IFollowerRequestDbContext followerRequestDbContext,
+    IFollowersContainer userFollowersContainer,
+    IGlobalContainer globalContainer) :
     IContactsRepository
 {
     public Task<UserEntity> GetUser(string userId)
@@ -31,22 +33,28 @@ public class ContactsRepository(
         return await userFollowersContainer.GetUsers(user, model);
     }
 
-    public async Task AddUser(UserEntity user)
+    public Task AddUser(UserEntity user)
     {
-        var addUserToContextTask = usersContext.Add(user);
-        var addUserToGlbalContainerTask = globalContainer.AddUser(user);
-        await Task.WhenAll(addUserToContextTask, addUserToGlbalContainerTask);
+        return ExecuteTransaction(() =>
+        {
+            var addUserToContextTask = usersContext.Add(user);
+            var addUserToGlbalContainerTask = globalContainer.AddUser(user);
+            return Task.WhenAll(addUserToContextTask, addUserToGlbalContainerTask);
+        });
     }
 
-    public async Task UpdateUser(UserEntity user)
+    public Task UpdateUser(UserEntity user)
     {
-        var updateUserInContextTask = usersContext.UpdateUser(user);
-        var updateUserInGlobalContainerTask = globalContainer.UpdateUser(user);
-        await Task.WhenAll(updateUserInContextTask, updateUserInGlobalContainerTask);
+        return ExecuteTransaction(async () =>
+        {
+            var updateUserInContextTask = usersContext.UpdateUser(user);
+            var updateUserInGlobalContainerTask = globalContainer.UpdateUser(user);
+            await Task.WhenAll(updateUserInContextTask, updateUserInGlobalContainerTask);
 
-        var followers = await userFollowersContext.Find(user.UserId);
-        var users = await Task.WhenAll(followers.Select(following => GetUser(following.FollowerId)));
-        await Task.WhenAll(users.Select(u => userFollowersContainer.UpdateUser(u, user)));
+            var followers = await userFollowersContext.Find(user.UserId);
+            var users = await Task.WhenAll(followers.Select(following => GetUser(following.FollowerId)));
+            await Task.WhenAll(users.Select(u => userFollowersContainer.UpdateUser(u, user)));
+        });
     }
 
     public Task<FollowRequestEntity> AddFollowRequest(string thisId, string otherId)
@@ -59,57 +67,89 @@ public class ContactsRepository(
         return followerRequestDbContext.Delete(thisId, otherId);
     }
 
-    public async Task<bool> IsFollower(string currentUserId, string userToFollowId)
+    public async Task<bool> IsFollower(string userId, string userToFollowId)
     {
-        return await userFollowersContext
-            .Find(userToFollowId, currentUserId) != null;
+        return await userFollowersContext.Find(userId, userToFollowId) != null;
     }
 
-    public async Task AddFollower(UserEntity follower, string userId)
+    public Task AddFollower(UserEntity follower, string userId)
     {
-        if (!await IsFollower(follower.UserId, userId))
+        return ExecuteTransaction(async () =>
+        {
+            if (!await IsFollower(follower.UserId, userId))
+            {
+                var user = await GetUser(userId);
+                var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, follower);
+                var addUserToFollowersContextTask = userFollowersContext.Add(new MyFollowerEntity
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    UserId = follower.UserId,
+                    FollowerId = user.UserId
+                });
+                var addUserToFollowingsContextTask = userFollowingsContext.Add(new MeFollowingEntity
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    UserId = user.UserId,
+                    FollowingId = follower.UserId,
+                });
+                await Task.WhenAll(
+                    addUserToFollowersContainerTask,
+                    addUserToFollowersContextTask,
+                    addUserToFollowingsContextTask);
+            }
+        });
+    }
+
+    public Task RemoveFollower(UserEntity follower, string userId)
+    {
+        return ExecuteTransaction(async () =>
         {
             var user = await GetUser(userId);
-            var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, follower);
-            var addUserToFollowersContextTask = userFollowersContext.Add(new MyFollowerEntity
-            {
-                Id = Guid.NewGuid().ToString("N"),
-                UserId = follower.UserId,
-                FollowerId = user.UserId
-            });
-            var addUserToFollowingsContextTask = userFollowingsContext.Add(new MeFollowingEntity
-            {
-                Id = Guid.NewGuid().ToString("N"),
-                UserId = user.UserId,
-                FollowingId = follower.UserId,
-            });
-            await Task.WhenAll(
-                addUserToFollowersContainerTask,
-                addUserToFollowersContextTask,
-                addUserToFollowingsContextTask);
-        }
+            var deleteFromFollowersContextTask = userFollowersContext.Delete(follower.UserId, user.UserId);
+            var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, follower.UserId);
+            var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, follower);
+            await Task.WhenAll(deleteFromFollowersContextTask, deleteFromFollowingsContextTask, deleteFromFollowersContainerTask);
+        });
     }
 
-    public async Task RemoveFollower(UserEntity follower, string userId)
+    public Task UpdateUser(UserEntity oldUser, UserEntity newUser)
     {
-        var user = await GetUser(userId);
-        var deleteFromFollowersContextTask = userFollowersContext.Delete(follower.UserId, user.UserId);
-        var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, follower.UserId);
-        var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, follower);
-        await Task.WhenAll(deleteFromFollowersContextTask, deleteFromFollowingsContextTask, deleteFromFollowersContainerTask);
-    }
-
-    public async Task UpdateUser(UserEntity oldUser, UserEntity newUser)
-    {
-        await globalContainer.UpdateUser(oldUser, newUser);
-        var followings = await userFollowingsContext.Find(oldUser.UserId);
-        var users = await Task.WhenAll(followings.Select(following => GetUser(following.UserId)));
-        await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, oldUser, newUser)));
-        await usersContext.UpdateUser(newUser);
+        return ExecuteTransaction(async () =>
+        {
+            await globalContainer.UpdateUser(oldUser, newUser);
+            var followings = await userFollowingsContext.Find(oldUser.UserId);
+            var users = await Task.WhenAll(followings.Select(following => GetUser(following.UserId)));
+            await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, oldUser, newUser)));
+            await usersContext.UpdateUser(newUser);
+        });
     }
 
     public Task HandleCategoryChange(CategoryChangedEvent @event)
     {
-        return userFollowersContainer.HandleCategoryChange(@event);
+        return ExecuteTransaction(() =>
+        {
+            return userFollowersContainer.HandleCategoryChange(@event);
+        });
+    }
+
+    private async Task ExecuteTransaction(Func<Task> func)
+    {
+        if (nameof(ContactsRepository).Length == "ContactsRepository".Length)
+        {
+            await func();
+            return;
+        }
+
+        using var session = await mongoClient.StartSessionAsync();
+        try
+        {
+            session.StartTransaction();
+            await func();
+            await session.CommitTransactionAsync();
+        }
+        catch (Exception)
+        {
+            await session.AbortTransactionAsync();
+        }
     }
 }

@@ -14,7 +14,7 @@ public interface IContactsRepository
     Task<FollowRequestEntity> AddFollowRequest(string thisId, string otherId);
     Task<FollowRequestEntity> DeleteFollowRequest(string thisId, string otherId);
     Task UpdateUser(UserEntity user);
-    Task<bool> IsFollower(string currentUserId, string userToFollowId);
+    Task<bool> IsFollower(string userId, string userToFollowId);
     Task AddFollower(UserEntity follower, string userId);
     Task RemoveFollower(UserEntity follower, string userId);
     Task UpdateUser(UserEntity oldUser, UserEntity newUser);

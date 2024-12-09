@@ -44,9 +44,9 @@ public class Storage(
         await Task.WhenAll(saveCacheTask, saveRepositoryTask);
     }
 
-    public Task<bool> IsFollower(string currentUserId, string userToFollowId)
+    public Task<bool> IsFollower(string userId, string userToFollowId)
     {
-        return contactsRepository.IsFollower(currentUserId, userToFollowId);
+        return contactsRepository.IsFollower(userId, userToFollowId);
     }
 
     public Task AddFollower(UserEntity user, string userToFollowId)
