@@ -50,14 +50,12 @@ public class KeyHelperTests
             },
             1,
             4);
-        Assert.Contains(result, o => o == "b");
-        Assert.Contains(result, o => o == "e");
-        Assert.Contains(result, o => o == "bc");
-        Assert.Contains(result, o => o == "bcd");
-        Assert.Contains(result, o => o == "bcde");
-        Assert.Contains(result, o => o == "ed");
-        Assert.Contains(result, o => o == "edc");
-        Assert.Contains(result, o => o == "edcb");
+        Assert.Contains(result, o => o == "ab");
+        Assert.Contains(result, o => o == "abc");
+        Assert.Contains(result, o => o == "abcd");
+        Assert.Contains(result, o => o == "fe");
+        Assert.Contains(result, o => o == "fed");
+        Assert.Contains(result, o => o == "fedc");
     }
 
     [Fact]

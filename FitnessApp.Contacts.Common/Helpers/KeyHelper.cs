@@ -21,7 +21,7 @@ public static class KeyHelper
         if (skipLength < 0 || count < 0)
             throw new KeyHelperException($"Invalid range: skipCount: {skipLength}, count: {count}");
         var result = new HashSet<string>();
-        for (var k = 1; k <= count; k++)
+        for (var k = 0; k <= count; k++)
         {
             result.Add(GetSubstring(user.FirstName, k));
             result.Add(GetSubstring(user.LastName, k));
