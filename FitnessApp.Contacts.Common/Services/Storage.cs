@@ -37,26 +37,19 @@ public class Storage(
         await Task.WhenAll(saveCacheTask, saveRepositoryTask);
     }
 
-    public async Task UpdateUser(UserEntity user)
-    {
-        var saveCacheTask = cache.SaveUser(user);
-        var saveRepositoryTask = contactsRepository.UpdateUser(user);
-        await Task.WhenAll(saveCacheTask, saveRepositoryTask);
-    }
-
     public Task<bool> IsFollower(string userId, string userToFollowId)
     {
         return contactsRepository.IsFollower(userId, userToFollowId);
     }
 
-    public Task AddFollower(UserEntity user, string userToFollowId)
+    public Task AddFollower(string userId, string userToFollowId)
     {
-        return contactsRepository.AddFollower(user, userToFollowId);
+        return contactsRepository.AddFollower(userId, userToFollowId);
     }
 
-    public Task RemoveFollower(UserEntity user, string userToUnFollowId)
+    public Task RemoveFollower(string userId, string userToUnFollowId)
     {
-        return contactsRepository.RemoveFollower(user, userToUnFollowId);
+        return contactsRepository.RemoveFollower(userId, userToUnFollowId);
     }
 
     public Task UpdateUser(UserEntity oldUser, UserEntity newUser)
@@ -70,6 +63,8 @@ public class Storage(
         var user = await GetUser(@event.UserId);
         user.Category = @event.NewCategory;
         user.CategoryDate = dateTimeService.Now;
-        await UpdateUser(user);
+        var saveCacheTask = cache.SaveUser(user);
+        var saveRepositoryTask = contactsRepository.UpdateUserFolowwersInfo(user);
+        await Task.WhenAll(saveCacheTask, saveRepositoryTask);
     }
 }

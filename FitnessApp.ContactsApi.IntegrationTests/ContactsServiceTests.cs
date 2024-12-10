@@ -93,6 +93,7 @@ public class ContactsServiceTests
     {
         await AfterStartupersFollowSava_SavaHasStartupersAsFollowers();
         await AfterPehiniovaFollowsSava_SavaUpgradesCategory();
+        await AfterPehiniovaChangesData_SavaHasNewPehiniova();
         await AfterPehiniovaUnFollowsSava_SavaDowngradesCategory();
         await AfterSavaFollowsPehiniovaAndSavaChangeData_PehiniovaHasYoungSavaAsFollower();
     }
@@ -116,7 +117,7 @@ public class ContactsServiceTests
 
         await CreateUser("Pedir", "Nedoshko");
 
-        await CreateUser("Myroslava", "Pehiniova");
+        await CreateUser("Myroslava", "Zubchyk");
     }
 
     private async Task CreateUser(string firstName, string lastName)
@@ -161,7 +162,7 @@ public class ContactsServiceTests
 
         await ValidateSavaFollowersAndFollowings(userRecords, sava.UserId);
 
-        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
         var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
         ValidateFirstChar(
             [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
@@ -187,7 +188,7 @@ public class ContactsServiceTests
     {
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
-        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+        var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
         await _contactsService.FollowUser(pehiniova.UserId, sava.UserId);
 
         var message = _messageQueue.Take();
@@ -212,6 +213,45 @@ public class ContactsServiceTests
             sava.UserId,
             sava.Category,
             null);
+    }
+
+    private async Task AfterPehiniovaChangesData_SavaHasNewPehiniova()
+    {
+        var oldPehiniova = (await GetRecords<UserEntity>("User")).Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
+        var youngPehiniova = (await GetRecords<UserEntity>("User")).Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
+        youngPehiniova.FirstName = "Slava";
+        youngPehiniova.LastName = "Niova";
+        await _contactsService.UpdateUser(oldPehiniova, youngPehiniova);
+        var userRecords = await GetRecords<UserEntity>("User");
+        var sava = userRecords.Single(u => u.LastName == "Sava");
+
+        var firstCharMapContextRecords = await GetRecords<FirstCharEntity>("FirstChar");
+        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "z", FirstCharsEntityType.LastName);
+        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "m", FirstCharsEntityType.FirstChars);
+        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "my", FirstCharsEntityType.FirstChars);
+        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "z", FirstCharsEntityType.FirstChars);
+        EnsureNotInFirstCharContext(firstCharMapContextRecords, sava.UserId, "zu", FirstCharsEntityType.FirstChars);
+
+        ValidateFirstChar(
+            [.. userRecords.Where(u => u.UserId != sava.UserId)],
+            firstCharMapContextRecords,
+            sava.UserId,
+            sava.Category);
+
+        var firstCharRecords = await GetRecords<FirstCharSearchUserEntity>("FirstCharSearchUser");
+        ValidateLastNameFirstCharContextWithDefaultPartitionKey(userRecords, firstCharRecords);
+        ValidateLastNameFirstCharContextWithCustomPartitionKey(
+            [.. userRecords.Where(u => u.UserId != sava.UserId)],
+            firstCharRecords,
+            sava.UserId,
+            sava.Category,
+            null);
+
+        oldPehiniova = userRecords.Single(p => p.FirstName == "Slava" && p.LastName == "Niova");
+        youngPehiniova = (await GetRecords<UserEntity>("User")).Single(p => p.FirstName == "Slava" && p.LastName == "Niova");
+        youngPehiniova.FirstName = "Myroslava";
+        youngPehiniova.LastName = "Pehiniova";
+        await _contactsService.UpdateUser(oldPehiniova, youngPehiniova);
     }
 
     private async Task AfterPehiniovaUnFollowsSava_SavaDowngradesCategory()
@@ -280,6 +320,9 @@ public class ContactsServiceTests
         EnsureInFirstCharContext(firstCharMapContextRecords, pehiniova.UserId, "r", FirstCharsEntityType.FirstChars);
 
         var firstCharRecords = await GetRecords<FirstCharSearchUserEntity>("FirstCharSearchUser");
+        EnsureNotInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "s");
+        EnsureNotInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "i");
+        EnsureNotInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "s", "FirstChar");
 
         ValidateLastNameFirstCharContextWithDefaultPartitionKey([sava], firstCharRecords);
         EnsureInLastNameFirstCharContextWithCustomPartitionKey(firstCharRecords, pehiniova.UserId, sava.UserId, "v");

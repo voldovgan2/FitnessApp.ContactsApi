@@ -1,46 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using FitnessApp.Common.Abstractions.Db;
+﻿using System.Reflection;
 using FitnessApp.Common.Configuration;
 using FitnessApp.Contacts.Common.Interfaces;
 using FitnessApp.Contacts.Common.Services;
 using FitnessApp.ContactsApi.Interfaces;
 using FitnessApp.ContactsApi.Services;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-
-// builder.Services.ConfigureMongo(builder.Configuration);
-IConfigurationSection section = builder.Configuration.GetSection("MongoConnection");
-string mongoDatabse = section.GetSection("DatabaseName").Value;
-string connectionString = section.GetSection("ConnectionString").Value;
-IEnumerable<string> enumerable = from value in builder.Configuration.GetSection("Contexts").GetChildren()
-                                 select value.GetValue<string>("CollecttionName");
-foreach (string context in enumerable)
-{
-    builder.Services.Configure(context, delegate(MongoDbSettings options)
-    {
-        options.ConnectionString = connectionString;
-        options.DatabaseName = mongoDatabse;
-        options.CollecttionName = context;
-    });
-}
-
-builder.Services.AddSingleton<IMongoClient, MongoClient>((IServiceProvider sp) => new MongoClient(connectionString));
-
-builder.Services.AddStackExchangeRedisCache(option =>
-{
-    option.Configuration = builder.Configuration["Redis:Configuration"];
-});
+builder.Services.ConfigureMongo(builder.Configuration);
+builder.Services.AddStackExchangeRedisCache(option => option.Configuration = builder.Configuration["Redis:Configuration"]);
 builder.Services.AddTransient<IGlobalContainer, GlobalContainer>();
 builder.Services.AddTransient<IFollowersContainer, FollowersContainer>();
 builder.Services.AddTransient<IContactsRepository, ContactsRepository>();
@@ -60,7 +33,7 @@ builder.Services.ConfigureNats(builder.Configuration);
 // builder.Services.ConfigureAuthentication(builder.Configuration);
 builder.Services.ConfigureSwagger(Assembly.GetExecutingAssembly().GetName().Name);
 
-// builder.Host.ConfigureAppConfiguration();
+builder.Host.ConfigureAppConfiguration();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

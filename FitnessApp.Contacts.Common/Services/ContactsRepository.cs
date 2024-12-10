@@ -43,18 +43,9 @@ public class ContactsRepository(
         });
     }
 
-    public Task UpdateUser(UserEntity user)
+    public Task UpdateUserFolowwersInfo(UserEntity user)
     {
-        return ExecuteTransaction(async () =>
-        {
-            var updateUserInContextTask = usersContext.UpdateUser(user);
-            var updateUserInGlobalContainerTask = globalContainer.UpdateUser(user);
-            await Task.WhenAll(updateUserInContextTask, updateUserInGlobalContainerTask);
-
-            var followers = await userFollowersContext.Find(user.UserId);
-            var users = await Task.WhenAll(followers.Select(following => GetUser(following.FollowerId)));
-            await Task.WhenAll(users.Select(u => userFollowersContainer.UpdateUser(u, user)));
-        });
+        return ExecuteTransaction(() => UpdateUser(user));
     }
 
     public Task<FollowRequestEntity> AddFollowRequest(string thisId, string otherId)
@@ -72,43 +63,51 @@ public class ContactsRepository(
         return await userFollowersContext.Find(userId, userToFollowId) != null;
     }
 
-    public Task AddFollower(UserEntity follower, string userId)
-    {
-        return ExecuteTransaction(async () =>
-        {
-            if (!await IsFollower(follower.UserId, userId))
-            {
-                var user = await GetUser(userId);
-                var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, follower);
-                var addUserToFollowersContextTask = userFollowersContext.Add(new MyFollowerEntity
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    UserId = follower.UserId,
-                    FollowerId = user.UserId
-                });
-                var addUserToFollowingsContextTask = userFollowingsContext.Add(new MeFollowingEntity
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    UserId = user.UserId,
-                    FollowingId = follower.UserId,
-                });
-                await Task.WhenAll(
-                    addUserToFollowersContainerTask,
-                    addUserToFollowersContextTask,
-                    addUserToFollowingsContextTask);
-            }
-        });
-    }
-
-    public Task RemoveFollower(UserEntity follower, string userId)
+    public Task AddFollower(string followerId, string userId)
     {
         return ExecuteTransaction(async () =>
         {
             var user = await GetUser(userId);
-            var deleteFromFollowersContextTask = userFollowersContext.Delete(follower.UserId, user.UserId);
-            var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, follower.UserId);
+            var follower = await GetUser(followerId);
+            user.FollowersCount += 1;
+            var addUserToFollowersContainerTask = userFollowersContainer.AddUser(user, follower);
+            var addUserToFollowersContextTask = userFollowersContext.Add(new MyFollowerEntity
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = followerId,
+                FollowerId = user.UserId
+            });
+            var addUserToFollowingsContextTask = userFollowingsContext.Add(new MeFollowingEntity
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = user.UserId,
+                FollowingId = followerId,
+            });
+            var updateUserTask = UpdateUser(user);
+            await Task.WhenAll(
+                addUserToFollowersContainerTask,
+                addUserToFollowersContextTask,
+                addUserToFollowingsContextTask,
+                updateUserTask);
+        });
+    }
+
+    public Task RemoveFollower(string followerId, string userId)
+    {
+        return ExecuteTransaction(async () =>
+        {
+            var user = await GetUser(userId);
+            var follower = await GetUser(followerId);
+            user.FollowersCount += 1;
+            var deleteFromFollowersContextTask = userFollowersContext.Delete(followerId, user.UserId);
+            var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, followerId);
             var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, follower);
-            await Task.WhenAll(deleteFromFollowersContextTask, deleteFromFollowingsContextTask, deleteFromFollowersContainerTask);
+            var updateUserTask = UpdateUser(user);
+            await Task.WhenAll(
+                deleteFromFollowersContextTask,
+                deleteFromFollowingsContextTask,
+                deleteFromFollowersContainerTask,
+                updateUserTask);
         });
     }
 
@@ -130,6 +129,17 @@ public class ContactsRepository(
         {
             return userFollowersContainer.HandleCategoryChange(@event);
         });
+    }
+
+    private async Task UpdateUser(UserEntity user)
+    {
+        var updateUserInContextTask = usersContext.UpdateUser(user);
+        var updateUserInGlobalContainerTask = globalContainer.UpdateUser(user);
+        await Task.WhenAll(updateUserInContextTask, updateUserInGlobalContainerTask);
+
+        var followers = await userFollowersContext.Find(user.UserId);
+        var users = await Task.WhenAll(followers.Select(following => GetUser(following.FollowerId)));
+        await Task.WhenAll(users.Select(u => userFollowersContainer.UpdateUser(u, user)));
     }
 
     private async Task ExecuteTransaction(Func<Task> func)

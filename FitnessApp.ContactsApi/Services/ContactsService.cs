@@ -47,8 +47,12 @@ public class ContactsService(
     {
         if (!await storage.IsFollower(userId, userToFollowId))
         {
-            var (User1, User2) = await GetUsersPair(userId, userToFollowId);
-            await AddFollower(User1, User2);
+            await storage.AddFollower(userId, userToFollowId);
+            var userToFollow = await storage.GetUser(userToFollowId);
+            HandleCategoryChange(
+                userToFollow,
+                CategoryHelper.ShouldUpgradeCategory,
+                CategoryHelper.GetUpgradeCategory);
         }
     }
 
@@ -56,8 +60,12 @@ public class ContactsService(
     {
         if (await storage.IsFollower(userId, userToUnFollowId))
         {
-            var (User1, User2) = await GetUsersPair(userId, userToUnFollowId);
-            await RemoveFollower(User1, User2);
+            await storage.RemoveFollower(userId, userToUnFollowId);
+            var userToUnFollow = await storage.GetUser(userToUnFollowId);
+            HandleCategoryChange(
+                userToUnFollow,
+                CategoryHelper.ShouldDowngradeCategory,
+                CategoryHelper.GetDowngradeCategory);
         }
     }
 
@@ -66,41 +74,15 @@ public class ContactsService(
         return storage.UpdateUser(oldUser, newUser);
     }
 
-    private async Task<(UserEntity User1, UserEntity User2)> GetUsersPair(string id1, string id2)
+    private void HandleCategoryChange(
+        UserEntity user,
+        Func<UserEntity, DateTime, bool> shouldChangeCategory,
+        Func<byte, byte> getNewCategory)
     {
-        var getUser1Task = storage.GetUser(id1);
-        var getUser2Task = storage.GetUser(id2);
-        await Task.WhenAll(getUser1Task, getUser2Task);
-        return (getUser1Task.Result, getUser2Task.Result);
-    }
-
-    private async Task AddFollower(UserEntity user, UserEntity userToFollow)
-    {
-        userToFollow.FollowersCount++;
-        await storage.AddFollower(user, userToFollow.UserId);
-        await storage.UpdateUser(userToFollow);
-        HandleCategoryChange(true, userToFollow);
-    }
-
-    private async Task RemoveFollower(UserEntity user, UserEntity userToUnFollow)
-    {
-        userToUnFollow.FollowersCount--;
-        await storage.RemoveFollower(user, userToUnFollow.UserId);
-        await storage.UpdateUser(userToUnFollow);
-        HandleCategoryChange(false, userToUnFollow);
-    }
-
-    private void HandleCategoryChange(bool increased, UserEntity user)
-    {
-        Func<UserEntity, DateTime, bool> shouldChangeCategory = increased ?
-            CategoryHelper.ShouldUpgradeCategory
-            : CategoryHelper.ShouldDowngradeCategory;
         if (shouldChangeCategory(user, dateTimeService.Now))
         {
             var oldCategory = user.Category;
-            var newCategory = increased ?
-                CategoryHelper.GetUpgradeCategory(user.Category)
-                : CategoryHelper.GetDowngradeCategory(user.Category);
+            var newCategory = getNewCategory(user.Category);
             serviceBus.PublishEvent(CategoryChangedEvent.Topic, JsonSerializerHelper.SerializeToBytes(new CategoryChangedEvent
             {
                 UserId = user.UserId,

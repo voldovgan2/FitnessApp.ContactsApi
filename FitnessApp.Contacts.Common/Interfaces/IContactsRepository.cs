@@ -13,10 +13,10 @@ public interface IContactsRepository
     Task AddUser(UserEntity user);
     Task<FollowRequestEntity> AddFollowRequest(string thisId, string otherId);
     Task<FollowRequestEntity> DeleteFollowRequest(string thisId, string otherId);
-    Task UpdateUser(UserEntity user);
+    Task UpdateUserFolowwersInfo(UserEntity user);
     Task<bool> IsFollower(string userId, string userToFollowId);
-    Task AddFollower(UserEntity follower, string userId);
-    Task RemoveFollower(UserEntity follower, string userId);
+    Task AddFollower(string followerId, string userId);
+    Task RemoveFollower(string followerId, string userId);
     Task UpdateUser(UserEntity oldUser, UserEntity newUser);
     Task HandleCategoryChange(CategoryChangedEvent @event);
 }
