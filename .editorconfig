@@ -103,6 +103,9 @@ dotnet_diagnostic.S3604.severity = None
 # Non-nullable field must contain a non-null value when exiting constructor
 dotnet_diagnostic.CS8618.severity = None
 
+# Classes should not be empty
+dotnet_diagnostic.S2094.severity = None
+
 csharp_using_directive_placement = outside_namespace:silent
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_prefer_braces = true:silent

@@ -2,7 +2,6 @@
 using FitnessApp.Common.Configuration;
 using FitnessApp.Contacts.Common.Interfaces;
 using FitnessApp.Contacts.Common.Services;
-using FitnessApp.ContactsApi.Interfaces;
 using FitnessApp.ContactsApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
