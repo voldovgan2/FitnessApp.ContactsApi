@@ -11,8 +11,14 @@ public class FollowingNotFoundException(string userId, string followingId) :
 public class FollowerRequestNotFoundException(string thisId, string otherId) :
     Exception($"Following request with thisId: {thisId} and otherId: {otherId} not exist");
 
-public class FirstCharSearchUserNotFoundException(string partitionKey, string userId, string firstChars) :
+public class FirstCharSearchUserNotFoundException(
+    string partitionKey,
+    string userId,
+    string firstChars) :
     Exception($"FirstCharSearchUser with partitionKey: {partitionKey} and userId: {userId} and firstChars: {firstChars} not exist");
 
-public class FirstCharEntityNotFoundException(string userId, string firstChars, FirstCharsEntityType firstCharsEntityType) :
+public class FirstCharEntityNotFoundException(
+    string userId,
+    string firstChars,
+    FirstCharsEntityType firstCharsEntityType) :
     Exception($"FirstCharSearchUser with userId: {userId} and firstChars: {firstChars} and firstCharsEntityType: {firstCharsEntityType} not exist");

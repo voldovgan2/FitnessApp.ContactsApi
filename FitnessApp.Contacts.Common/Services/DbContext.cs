@@ -75,7 +75,7 @@ public class FollowerDbContext(IMongoClient mongoClient, IOptionsSnapshot<MongoD
     public async Task<MyFollowerEntity> Delete(string userId, string followerId)
     {
         var result = await Find(userId, followerId) ?? throw new FollowerNotFoundException(userId, followerId);
-        var deleteResult = await Collection.DeleteOneAsync(FitnessApp.Common.Helpers.DbContextHelper.CreateGetByUserIdFiter<MyFollowerEntity>(userId));
+        var deleteResult = await Collection.DeleteOneAsync(Helpers.DbContextHelper.CreateGetByUserIdAndFollowerIdFiter<MyFollowerEntity>(userId, followerId));
         return FitnessApp.Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? result
             : throw new FollowerNotFoundException(userId, followerId);
@@ -317,16 +317,25 @@ public class FirstCharDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
     DbContextBase<FirstCharEntity>(mongoClient, snapshot.Get("FirstChar")),
     IFirstCharDbContext
 {
-    public async Task<FirstCharEntity?> TryGet(string userId, string firstChars, FirstCharsEntityType entityType)
+    public async Task<FirstCharEntity?> TryGet(
+        string userId,
+        string firstChars,
+        FirstCharsEntityType entityType)
     {
         var items = await FitnessApp.Common.Helpers.DbContextHelper.FilterCollection(Collection, CreateGetByIdAndEntityTypeAndFirstCharsFiter(userId, entityType, firstChars));
         return items.FirstOrDefault();
     }
 
-    public async Task<FirstCharEntity> Get(string userId, string firstChars, FirstCharsEntityType entityType)
+    public async Task<FirstCharEntity> Get(
+        string userId,
+        string firstChars,
+        FirstCharsEntityType entityType)
     {
         var item = await TryGet(userId, firstChars, entityType);
-        return item ?? throw new FirstCharEntityNotFoundException(userId, firstChars, entityType);
+        return item ?? throw new FirstCharEntityNotFoundException(
+            userId,
+            firstChars,
+            entityType);
     }
 
     public Task<FirstCharEntity[]> Get(string userId, FirstCharsEntityType entityType)
@@ -351,13 +360,22 @@ public class FirstCharDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
         return await Get(entity.UserId, entity.FirstChars, entity.EntityType);
     }
 
-    public async Task<FirstCharEntity> Delete(string userId, string firstChars, FirstCharsEntityType entityType)
+    public async Task<FirstCharEntity> Delete(
+        string userId,
+        string firstChars,
+        FirstCharsEntityType entityType)
     {
         var deleted = await Get(userId, firstChars, entityType) ?? throw new FirstCharEntityNotFoundException(userId, firstChars, entityType);
-        var deleteResult = await Collection.DeleteOneAsync(CreateGetByIdAndEntityTypeAndFirstCharsFiter(userId, entityType, firstChars));
+        var deleteResult = await Collection.DeleteOneAsync(CreateGetByIdAndEntityTypeAndFirstCharsFiter(
+            userId,
+            entityType,
+            firstChars));
         return FitnessApp.Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? deleted
-            : throw new FirstCharEntityNotFoundException(userId, firstChars, entityType);
+            : throw new FirstCharEntityNotFoundException(
+                userId,
+                firstChars,
+                entityType);
     }
 
     private static FilterDefinition<FirstCharEntity> CreateGetByIdAndEntityTypeFiter(string userId, FirstCharsEntityType entityType)
@@ -369,7 +387,10 @@ public class FirstCharDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
                 FitnessApp.Common.Helpers.DbContextHelper.CreateGetByUserIdFiter<FirstCharEntity>(userId));
     }
 
-    private static FilterDefinition<FirstCharEntity> CreateGetByIdAndEntityTypeAndFirstCharsFiter(string userId, FirstCharsEntityType entityType, string firstChars)
+    private static FilterDefinition<FirstCharEntity> CreateGetByIdAndEntityTypeAndFirstCharsFiter(
+        string userId,
+        FirstCharsEntityType entityType,
+        string firstChars)
     {
         return Builders<FirstCharEntity>
             .Filter
