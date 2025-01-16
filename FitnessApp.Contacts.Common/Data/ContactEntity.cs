@@ -1,5 +1,4 @@
-﻿using System;
-using FitnessApp.Common.Abstractions.Db;
+﻿using FitnessApp.Common.Abstractions.Db;
 using FitnessApp.Contacts.Common.Enums;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -58,11 +57,13 @@ public class UserEntity : UserEntityBase
 
 public class MyFollowerEntity : WithUserIdEntity, IFollowerEntity
 {
+    // UserId is partition key
     public string FollowerId { get; init; }
 }
 
 public class MeFollowingEntity : WithUserIdEntity, IFollowingEntity
 {
+    // UserId is partition key
     public string FollowingId { get; init; }
 }
 
