@@ -98,7 +98,7 @@ public class ContactsRepository(
         {
             var user = await GetUser(userId);
             var follower = await GetUser(followerId);
-            user.FollowersCount += 1;
+            user.FollowersCount -= 1;
             var deleteFromFollowersContextTask = userFollowersContext.Delete(followerId, user.UserId);
             var deleteFromFollowingsContextTask = userFollowingsContext.Delete(user.UserId, followerId);
             var deleteFromFollowersContainerTask = userFollowersContainer.RemoveUser(user, follower);

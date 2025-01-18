@@ -38,12 +38,13 @@ public class ContactsServiceTests
     public readonly ContactsService _contactsService;
     public readonly CategoryChangeHandler _categoryChangeHandler;
     private readonly BlockingCollection<CategoryChangedEvent> _messageQueue = [];
+    private readonly DateTimeService _dateTimeService = new();
 
     public ContactsServiceTests()
     {
-        var dateTimeService = new DateTimeService();
+        _dateTimeService = new DateTimeService();
         var optionsSnapshot = new OptionsSnapshot();
-        var client = new MongoClient("mongodb://127.0.0.1:27017");
+        var client = CreateMongoClient();
         client.DropDatabase("FitnessContacts");
         var userDbContext = new UserDbContext(client, optionsSnapshot);
         var followerDbContext = new FollowerDbContext(client, optionsSnapshot);
@@ -51,7 +52,7 @@ public class ContactsServiceTests
         var followerRequestDbContext = new FollowerRequestDbContext(
             client,
             optionsSnapshot,
-            dateTimeService);
+            _dateTimeService);
         var lastNameFirstCharContext = new FirstCharSearchUserDbContext(client, optionsSnapshot);
         var firstCharsContext = new FirstCharSearchUserDbContext(client, optionsSnapshot);
         var firstCharMapContext = new FirstCharDbContext(client, optionsSnapshot);
@@ -146,15 +147,25 @@ public class ContactsServiceTests
         var startuper8 = userRecords.Single(feh => feh.FirstName == "Hfehin" && feh.LastName == "Nedoshok");
         var startuper9 = userRecords.Single(feh => feh.FirstName == "Pedir" && feh.LastName == "Nedoshko");
 
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper0.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper1.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper2.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper3.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper4.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper5.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper6.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper7.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper8.UserId, sava.UserId);
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(startuper9.UserId, sava.UserId);
 
         userRecords = await GetRecords<UserEntity>("User");
@@ -189,6 +200,7 @@ public class ContactsServiceTests
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(pehiniova.UserId, sava.UserId);
 
         var message = _messageQueue.Take();
@@ -221,6 +233,7 @@ public class ContactsServiceTests
         var youngPehiniova = (await GetRecords<UserEntity>("User")).Single(p => p.FirstName == "Myroslava" && p.LastName == "Zubchyk");
         youngPehiniova.FirstName = "Slava";
         youngPehiniova.LastName = "Niova";
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.UpdateUser(oldPehiniova, youngPehiniova);
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
@@ -251,6 +264,7 @@ public class ContactsServiceTests
         youngPehiniova = (await GetRecords<UserEntity>("User")).Single(p => p.FirstName == "Slava" && p.LastName == "Niova");
         youngPehiniova.FirstName = "Myroslava";
         youngPehiniova.LastName = "Pehiniova";
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.UpdateUser(oldPehiniova, youngPehiniova);
     }
 
@@ -259,7 +273,11 @@ public class ContactsServiceTests
         var userRecords = await GetRecords<UserEntity>("User");
         var sava = userRecords.Single(u => u.LastName == "Sava");
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.UnFollowUser(pehiniova.UserId, sava.UserId);
+        var pehinioviy = userRecords.Single(p => p.FirstName == "Fedir" && p.LastName == "Nedashkovskiy");
+        _dateTimeService.Now = DateTime.UtcNow;
+        await _contactsService.UnFollowUser(pehinioviy.UserId, sava.UserId);
 
         var savaFollowers = (await GetRecords<MyFollowerEntity>("Follower")).Where(f => f.FollowerId == sava.UserId);
         Assert.Null(savaFollowers.FirstOrDefault(sf => sf.FollowerId == pehiniova.UserId));
@@ -282,7 +300,7 @@ public class ContactsServiceTests
 
         ValidateLastNameFirstCharContextWithDefaultPartitionKey(userRecords, firstCharRecords);
         ValidateLastNameFirstCharContextWithCustomPartitionKey(
-            [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId)],
+            [.. userRecords.Where(u => u.UserId != sava.UserId && u.UserId != pehiniova.UserId && u.UserId != pehinioviy.UserId)],
             firstCharRecords,
             sava.UserId,
             sava.Category,
@@ -300,11 +318,13 @@ public class ContactsServiceTests
 
         var pehiniova = userRecords.Single(p => p.FirstName == "Myroslava" && p.LastName == "Pehiniova");
 
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.FollowUser(sava.UserId, pehiniova.UserId);
         var oldSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
         var youngSava = (await GetRecords<UserEntity>(sava.UserId, "User")).Single();
         youngSava.FirstName = "Roig";
         youngSava.LastName = "Vasa";
+        _dateTimeService.Now = DateTime.UtcNow;
         await _contactsService.UpdateUser(oldSava, youngSava);
         var savaRecords = await GetRecords<UserEntity>(sava.UserId, "User");
         sava = savaRecords.Single();
@@ -333,25 +353,32 @@ public class ContactsServiceTests
     private static async Task<T[]> GetRecords<T>(string collectionName)
         where T : IWithUserIdEntity
     {
-        var client = new MongoClient("mongodb://127.0.0.1:27017");
-        IMongoDatabase database = client.GetDatabase("FitnessContacts");
-        var collection = database.GetCollection<T>(collectionName);
-        var items = await DbContextHelper.FilterCollection(
+        var collection = GetCollection<T>(collectionName);
+        return await DbContextHelper.FilterCollection(
             collection,
             FilterDefinition<T>.Empty);
-        return items;
     }
 
     private static async Task<T[]> GetRecords<T>(string userId, string collectionName)
         where T : IWithUserIdEntity
     {
-        var client = new MongoClient("mongodb://127.0.0.1:27017");
-        IMongoDatabase database = client.GetDatabase("FitnessContacts");
-        var collection = database.GetCollection<T>(collectionName);
-        var items = await DbContextHelper.FilterCollection(
+        var collection = GetCollection<T>(collectionName);
+        return await DbContextHelper.FilterCollection(
             collection,
             DbContextHelper.CreateGetByUserIdFiter<T>(userId));
-        return items;
+    }
+
+    private static IMongoCollection<T> GetCollection<T>(string collectionName)
+        where T : IWithUserIdEntity
+    {
+        var client = CreateMongoClient();
+        IMongoDatabase database = client.GetDatabase("FitnessContacts");
+        return database.GetCollection<T>(collectionName);
+    }
+
+    private static MongoClient CreateMongoClient()
+    {
+        return new MongoClient("mongodb://127.0.0.1:27017");
     }
 
     private static async Task ValidateSavaFollowersAndFollowings(UserEntity[] userRecords, string savaUserId)

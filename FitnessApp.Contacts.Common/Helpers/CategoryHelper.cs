@@ -24,7 +24,9 @@ public static class CategoryHelper
     };
     private static readonly Dictionary<byte, int> _bottomThreesholds = new()
     {
-        { 1, _k10 - (_k10 * _threeshold / 100) },
+        // Just for integration testing
+        // { 1, _k10 - (_k10 * _threeshold / 100) },
+        { 1, 10 },
         { 2, _k50 - (_k50 * _threeshold / 100) },
         { 3, _k500 - (_k500 * _threeshold / 100) },
         { 4, _m10 - (_m10 * _threeshold / 100) },
@@ -59,7 +61,7 @@ public static class CategoryHelper
     {
         if (user.Category == 1)
             return false;
-        var threeshold = GetItemFomCollection(_bottomThreesholds, user.Category);
+        var threeshold = GetItemFomCollection(_bottomThreesholds, (byte)(user.Category - 1));
         return user.FollowersCount < threeshold && IsOutsideDate(user, now);
     }
 
