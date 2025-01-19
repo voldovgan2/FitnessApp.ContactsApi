@@ -73,7 +73,7 @@ public class ContactsServiceTests
         var storage = new Storage(
             usersCache,
             contactsRepository,
-            dateTimeService);
+            _dateTimeService);
         var connectionFactory = new ConnectionFactory();
         connectionFactory.CreateConnection().SubscribeAsync(CategoryChangedEvent.Topic, (sender, args) =>
         {
@@ -84,7 +84,7 @@ public class ContactsServiceTests
         _contactsService = new ContactsService(
             storage,
             serviceBus,
-            dateTimeService);
+            _dateTimeService);
         _categoryChangeHandler = new CategoryChangeHandler(storage);
         CreateUsers().GetAwaiter().GetResult();
     }

@@ -10,6 +10,12 @@ namespace FitnessApp.ContactsApi.Controllers;
 
 public class ContactsController(IContactsService contactsService) : Controller
 {
+    [HttpGet("SvTest")]
+    public Task<string> SvTest()
+    {
+        return Task.FromResult("Hello world from SvTest");
+    }
+
     [HttpGet("CreateSavaAndHfed")]
     public async Task CreateSavaAndHfed()
     {
