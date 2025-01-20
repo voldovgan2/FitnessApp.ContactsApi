@@ -1,4 +1,5 @@
 docker compose up -d
+docker build --build-arg NUGET_PAT={PAT_PLACEHOLDER} -t fitness-app.contacts-api:latest -f Dockerfile .
 
 admin
 pass

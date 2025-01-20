@@ -274,19 +274,19 @@ public class FollowersContainer(
                     oldCharsCount,
                     newCharsCount);
             }).SelectMany(firstCharKeys => firstCharKeys);
-        var tasks = followerByChars.Select(followerByChar => UpdateFirstCharsContext(
+        var updateFirstCharsContextTasks = followerByChars.Select(followerByChar => UpdateFirstCharsContext(
             userId,
             FirstCharsEntityType.FirstChars,
             followerByChar,
             true));
-        foreach (var task in tasks)
+        foreach (var updateFirstCharsContextTask in updateFirstCharsContextTasks)
         {
-            await task;
+            await updateFirstCharsContextTask;
         }
     }
 
     /// <summary>
-    /// Add informative comment after final implementation.
+    /// Delete items from FirstCharsContext. If we downgrade(Category 3->2 FirstChat Ned->Ne), then we need to remove all Ned first chars across all partitions.
     /// </summary>
     /// <param name="userId">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="newCharsCount">New chars count.</param>
@@ -298,7 +298,7 @@ public class FollowersContainer(
     }
 
     /// <summary>
-    /// Add informative comment after final implementation.
+    /// Updates(Add/Removes) user in FirstCharsContext by LastName and by FirstChars.
     /// </summary>
     /// <param name="user">In which user context to execute method, used to build partition key and chars count.</param>
     /// <param name="userToUpdate">User to update.</param>
@@ -314,10 +314,14 @@ public class FollowersContainer(
         updateFirstCharsContextTasks.Add(UpdateFirstCharsContext(user.UserId, FirstCharsEntityType.LastName, lastNameFirstChar, increase));
         var charsCount = CategoryHelper.GetCategoryCharsCount(user.Category);
         var firstCharsKeys = KeyHelper.GetKeysByFirstChars(userToUpdate, 0, charsCount);
-        updateFirstCharsContextTasks.AddRange(firstCharsKeys.Select(firstCharsKey => UpdateFirstCharsContext(user.UserId, FirstCharsEntityType.FirstChars, firstCharsKey, increase)));
-        foreach (var task in updateFirstCharsContextTasks)
+        updateFirstCharsContextTasks.AddRange(firstCharsKeys.Select(firstCharsKey => UpdateFirstCharsContext(
+            user.UserId,
+            FirstCharsEntityType.FirstChars,
+            firstCharsKey,
+            increase)));
+        foreach (var updateFirstCharsContextTask in updateFirstCharsContextTasks)
         {
-            await task;
+            await updateFirstCharsContextTask;
         }
     }
 
