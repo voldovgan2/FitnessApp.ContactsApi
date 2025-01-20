@@ -82,24 +82,46 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and push develop
+    - name: Build and push develop for Contacts.API
       if: github.ref == 'refs/heads/develop'
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile  
+        file: ./Contacts.API.Dockerfile 
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:alpha
         
-    - name: Build and push latest
+    - name: Build and push develop for Contacts.ContactsCategoryHandler
+      if: github.ref == 'refs/heads/develop'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.ContactsCategoryHandler.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:alpha
+        
+    - name: Build and push latest for Contacts.API
       if: github.ref == 'refs/heads/master'
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile  
+        file: ./Contacts.API.Dockerfile 
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:latest
+        
+    - name: Build and push latest for Contacts.ContactsCategoryHandler
+      if: github.ref == 'refs/heads/master'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.ContactsCategoryHandler.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:latest
