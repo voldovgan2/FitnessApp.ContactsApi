@@ -24,6 +24,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --name mongo_container
+      nats:
+        image: nats
+        ports:
+          - 4222:4222
 
     steps:
     - name: Checkout
@@ -46,14 +50,8 @@ jobs:
     - name: Run tests
       run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
       env:
-        MONGOCONNECTION__DATABASENAME: FitnessContacts
-        MONGOCONNECTION__CONNECTIONSTRING: mongodb://127.0.0.1:27017
-        CONTEXTS__0__COLLECTTIONNAME: User
-        CONTEXTS__1__COLLECTTIONNAME: Follower
-        CONTEXTS__2__COLLECTTIONNAME: Following
-        CONTEXTS__3__COLLECTTIONNAME: FollowerRequest
-        CONTEXTS__4__COLLECTTIONNAME: FirstCharSearchUser
-        CONTEXTS__5__COLLECTTIONNAME: FirstChar
+        MONGOCONNECTIONSTRING: mongodb://127.0.0.1:27017
+        NATSCONNECTIONSTRING: nats://127.0.0.1:4222
       
     - name: Code Coverage Report
       uses: irongut/CodeCoverageSummary@v1.3.0

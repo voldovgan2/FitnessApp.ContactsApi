@@ -10,6 +10,7 @@ using FitnessApp.Contacts.Common.Services;
 using FitnessApp.ContactsApi.Services;
 using FitnessApp.ContactsCategoryHandler;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Moq;
@@ -20,7 +21,7 @@ namespace FitnessApp.ContactsApi.IntegrationTests;
 
 public class ContactsServiceTests
 {
-    private class OptionsSnapshot : IOptionsSnapshot<MongoDbSettings>
+    private class OptionsSnapshot(IConfiguration configuration) : IOptionsSnapshot<MongoDbSettings>
     {
         public MongoDbSettings Value => throw new NotImplementedException();
 
@@ -30,7 +31,7 @@ public class ContactsServiceTests
             {
                 DatabaseName = "FitnessContacts",
                 CollecttionName = name,
-                ConnectionString = "mongodb://127.0.0.1:27017"
+                ConnectionString = configuration["MongoConnectionString"]
             };
         }
     }
@@ -42,8 +43,15 @@ public class ContactsServiceTests
 
     public ContactsServiceTests()
     {
+        var builder = new ConfigurationBuilder()
+           .SetBasePath(Directory.GetCurrentDirectory())
+           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+           .AddEnvironmentVariables();
+        var configuration = builder.Build();
+        var env = configuration["MongoConnectionString"];
+        Console.WriteLine(env);
         _dateTimeService = new DateTimeService();
-        var optionsSnapshot = new OptionsSnapshot();
+        var optionsSnapshot = new OptionsSnapshot(configuration);
         var client = CreateMongoClient();
         client.DropDatabase("FitnessContacts");
         var userDbContext = new UserDbContext(client, optionsSnapshot);
@@ -80,7 +88,7 @@ public class ContactsServiceTests
             var receivedMessage = JsonConvertHelper.DeserializeFromBytes<CategoryChangedEvent>(args.Message.Data);
             _messageQueue.Add(receivedMessage);
         });
-        var serviceBus = new ServiceBus(connectionFactory, "nats://127.0.0.1:4222");
+        var serviceBus = new ServiceBus(connectionFactory, configuration["NatsConnectionString"]);
         _contactsService = new ContactsService(
             storage,
             serviceBus,
