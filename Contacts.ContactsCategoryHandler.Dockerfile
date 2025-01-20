@@ -15,7 +15,7 @@ RUN dotnet restore "FitnessApp.ContactsApi.sln"
 RUN dotnet build "FitnessApp.ContactsApi.sln" -c Release -o /app
 
 FROM build AS publish
-RUN dotnet publish "FitnessApp.ContactsApi/FitnessApp.ContactsCategoryHandler.csproj" -c Release -o /app
+RUN dotnet publish "FitnessApp.ContactsCategoryHandler/FitnessApp.ContactsCategoryHandler.csproj" -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
