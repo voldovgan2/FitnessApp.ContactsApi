@@ -124,8 +124,7 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:latest
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:$VERSION_TAG
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:latest, ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:$VERSION_TAG
         
     - name: Build and push latest for Contacts.ContactsCategoryHandler
       if: github.ref == 'refs/heads/master'
@@ -136,5 +135,4 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:latest
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:$VERSION_TAG
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:latest, ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:$VERSION_TAG
