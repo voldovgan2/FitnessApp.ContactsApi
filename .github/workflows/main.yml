@@ -5,8 +5,11 @@ on:
     branches:
     - master
     - develop
-    tags:
-      - 'v*'  # Tag pattern v1.0.0
+    
+  env:
+    API_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api
+    HANDLER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler
+    
       
 jobs:
   build:
@@ -93,16 +96,17 @@ jobs:
         tags: |
           type=semver,pattern={{version}}
 
-    - name: Build and push develop for Contacts.API
-      if: github.ref == 'refs/heads/develop'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Contacts.API.Dockerfile 
-        build-args: |
-          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:alpha
+    - name: Build and push Contacts.API
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+          TAG="alpha"
+          docker buildx build --tag $API_IMAGE_NAME:alpha --file ./Contacts.API.Dockerfile . --push
+        elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+          TAG="latest"
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          docker buildx build --tag $HANDLER_IMAGE_NAME:$TAG --tag $HANDLER_IMAGE_NAME:$COMMIT_HASH . --push
+          exit 0
+        fi
         
     - name: Build and push develop for Contacts.ContactsCategoryHandler
       if: github.ref == 'refs/heads/develop'
