@@ -6,9 +6,9 @@ on:
     - master
     - develop
     
-  env:
-    API_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api
-    HANDLER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler
+env:
+  API_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api
+  HANDLER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler
     
       
 jobs:
