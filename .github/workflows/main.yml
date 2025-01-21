@@ -5,6 +5,8 @@ on:
     branches:
     - master
     - develop
+    tags:
+      - 'v*'  # Tag pattern, e.g., v1.0.0
       
 jobs:
   build:
@@ -81,6 +83,15 @@ jobs:
         
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+      
+    - name: Get Git version (commit hash or tag)
+      id: git_version
+      run: |
+        VERSION_TAG=${GITHUB_SHA}  # Using commit hash as version
+        if [[ ! -z "${GITHUB_REF##refs/tags/*}" ]]; then
+          VERSION_TAG=$(git describe --tags --abbrev=0)
+        fi
+        echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
 
     - name: Build and push develop for Contacts.API
       if: github.ref == 'refs/heads/develop'
@@ -114,6 +125,7 @@ jobs:
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:$VERSION_TAG
         
     - name: Build and push latest for Contacts.ContactsCategoryHandler
       if: github.ref == 'refs/heads/master'
@@ -125,3 +137,4 @@ jobs:
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:$VERSION_TAG
