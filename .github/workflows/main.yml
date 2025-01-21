@@ -84,14 +84,14 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
-    - name: Get Git version (commit hash or tag)
-      id: git_version
-      run: |
-        VERSION_TAG=${GITHUB_SHA}  # Using commit hash as version
-        if [[ ! -z "${GITHUB_REF##refs/tags/*}" ]]; then
-          VERSION_TAG=$(git describe --tags --abbrev=0)
-        fi
-        echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+    - name: Extract Metadata
+      uses: docker/metadata-action@v5
+      id: meta
+      with:
+        images: |
+          ${{secrets.DOCKERHUB_USERNAME}}/${{secrets.DH_REPO_NAME}}
+        tags: |
+          type=semver,pattern={{version}}
 
     - name: Build and push develop for Contacts.API
       if: github.ref == 'refs/heads/develop'
@@ -124,7 +124,7 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api:$VERSION_TAG
+        tags: ${{ steps.meta.outputs.tags }}
         
     - name: Build and push latest for Contacts.ContactsCategoryHandler
       if: github.ref == 'refs/heads/master'
@@ -135,4 +135,4 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler:$VERSION_TAG
+        tags: ${{ steps.meta.outputs.tags }}
