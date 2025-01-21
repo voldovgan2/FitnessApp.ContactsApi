@@ -9,7 +9,6 @@ on:
 env:
   API_IMAGE_NAME: fitnessappacc/fitness-app-contacts-api
   HANDLER_IMAGE_NAME: fitnessappacc/fitness-app-contacts-category-handler
-    
       
 jobs:
   build:
