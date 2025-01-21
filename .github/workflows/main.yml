@@ -7,8 +7,8 @@ on:
     - develop
     
 env:
-  API_IMAGE_NAME: fitnessappacc/fitness-app-contacts-api
-  HANDLER_IMAGE_NAME: fitnessappacc/fitness-app-contacts-category-handler
+  API_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-api
+  HANDLER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-app-contacts-category-handler
       
 jobs:
   build:
