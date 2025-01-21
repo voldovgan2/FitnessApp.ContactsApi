@@ -87,31 +87,33 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
-    - name: Extract Metadata
+    - name: Extract Metadata for API
       uses: docker/metadata-action@v5
-      id: meta
+      id: meta_api
       with:
         images: |
-          ${{secrets.DOCKERHUB_USERNAME}}/${{secrets.DH_REPO_NAME}}
+          $API_IMAGE_NAME
         tags: |
           type=semver,pattern={{version}}
 
-    - name: Build and push Contacts.API
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-          docker buildx build --tag $API_IMAGE_NAME:alpha --file ./Contacts.API.Dockerfile . --push
-        elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          docker buildx build --tag $API_IMAGE_NAME:$latest --tag $API_IMAGE_NAME:$COMMIT_HASH --file ./Contacts.API.Dockerfile . --push
-        fi
-        exit 0
-        
-    - name: Build and push Contacts.ContactsCategoryHandler
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-          docker buildx build --tag $HANDLER_IMAGE_NAME:alpha --file ./Contacts.ContactsCategoryHandler.Dockerfile . --push
-        elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          docker buildx build --tag $HANDLER_IMAGE_NAME:$latest --tag $HANDLER_IMAGE_NAME:$COMMIT_HASH --file ./Contacts.ContactsCategoryHandler.Dockerfile . --push
-        fi
-        exit 0
+    - name: Build and push develop for Contacts.API
+      if: github.ref == 'refs/heads/develop'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.API.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: $API_IMAGE_NAME:alpha
+  
+    - name: Build and push latest for Contacts.API
+      if: github.ref == 'refs/heads/master'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.API.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: $API_IMAGE_NAME/${{ steps.meta_api.outputs.tags }}
