@@ -6,7 +6,7 @@ on:
     - master
     - develop
     tags:
-      - 'v*'  # Tag pattern e.g., v1.0.0
+      - 'v*'  # Tag pattern v1.0.0
       
 jobs:
   build:
