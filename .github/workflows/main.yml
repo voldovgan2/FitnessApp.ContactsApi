@@ -125,4 +125,26 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{env.API_IMAGE_NAME}}:${{ steps.gitversion.outputs.SemVer }}
+        tags: ${{env.API_IMAGE_NAME}}:latest, ${{env.API_IMAGE_NAME}}:${{ steps.gitversion.outputs.SemVer }}
+        
+    - name: Build and push develop for Contacts.ContactsCategoryHandler
+      if: github.ref == 'refs/heads/develop'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.ContactsCategoryHandler.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: ${{ env.HANDLER_IMAGE_NAME }}:alpha
+    
+    - name: Build and push latest for Contacts.ContactsCategoryHandler
+      if: github.ref == 'refs/heads/master'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Contacts.ContactsCategoryHandler.Dockerfile 
+        build-args: |
+          NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
+        push: true
+        tags: ${{ env.HANDLER_IMAGE_NAME }}:latest, ${{env.HANDLER_IMAGE_NAME}}:${{ steps.gitversion.outputs.SemVer }}
