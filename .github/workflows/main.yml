@@ -114,7 +114,7 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{env.API_IMAGE_NAME}}:alpha
+        tags: ${{env.API_IMAGE_NAME}}:${{ steps.gitversion.outputs.SemVer }}_alpha
   
     - name: Build and push latest for Contacts.API
       if: github.ref == 'refs/heads/master'
