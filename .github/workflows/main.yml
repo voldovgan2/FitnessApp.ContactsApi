@@ -136,7 +136,7 @@ jobs:
         build-args: |
           NUGET_PAT=${{ secrets.PACKAGE_SOURCE_PASSWORD }}
         push: true
-        tags: ${{ env.HANDLER_IMAGE_NAME }}:alpha
+        tags: ${{env.HANDLER_IMAGE_NAME}}:${{ steps.gitversion.outputs.SemVer }}_alpha
     
     - name: Build and push latest for Contacts.ContactsCategoryHandler
       if: github.ref == 'refs/heads/master'
