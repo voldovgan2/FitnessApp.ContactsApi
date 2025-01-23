@@ -116,7 +116,8 @@ public class ContactsRepository(
         return ExecuteTransaction(async () =>
         {
             await globalContainer.UpdateUser(oldUser, newUser);
-            var followings = await userFollowingsContext.Find(oldUser.UserId);
+            var followers = await userFollowersContext.Find(oldUser.UserId);
+            var followings = await Task.WhenAll(followers.Select(follower => userFollowingsContext.Get(follower.FollowerId, follower.UserId)));
             var users = await Task.WhenAll(followings.Select(following => GetUser(following.UserId)));
             await Task.WhenAll(users.Select(user => userFollowersContainer.UpdateUser(user, oldUser, newUser)));
             await usersContext.UpdateUser(newUser);

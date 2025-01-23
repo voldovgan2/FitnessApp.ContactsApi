@@ -91,12 +91,12 @@ public class FollowingDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
         return CreateItem(entity);
     }
 
-    public async Task<MeFollowingEntity?> Find(string userId, string followingId)
+    public async Task<MeFollowingEntity> Get(string userId, string followingId)
     {
         var items = await FitnessApp.Common.Helpers.DbContextHelper.FilterCollection(
             Collection,
             Helpers.DbContextHelper.CreateGetByUserIdAndFollowingIdFiter<MeFollowingEntity>(userId, followingId));
-        return items.FirstOrDefault();
+        return items.FirstOrDefault() ?? throw new FollowerNotFoundException(userId, followingId);
     }
 
     public Task<MeFollowingEntity[]> Find(string followingId)
@@ -109,7 +109,7 @@ public class FollowingDbContext(IMongoClient mongoClient, IOptionsSnapshot<Mongo
 
     public async Task<MeFollowingEntity> Delete(string userId, string followingId)
     {
-        var result = await Find(userId, followingId) ?? throw new FollowerNotFoundException(userId, followingId);
+        var result = await Get(userId, followingId) ?? throw new FollowerNotFoundException(userId, followingId);
         var deleteResult = await Collection.DeleteOneAsync(Helpers.DbContextHelper.CreateGetByUserIdAndFollowingIdFiter<MeFollowingEntity>(userId, followingId));
         return FitnessApp.Common.Helpers.DbContextHelper.IsConfirmed(deleteResult.IsAcknowledged, deleteResult.DeletedCount)
             ? result
